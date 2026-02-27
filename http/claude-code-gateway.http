@@ -1,0 +1,72 @@
+﻿### Health check
+GET http://localhost:5000/
+
+### Non-streaming (Anthropic Messages)
+POST http://localhost:5000/v1/messages
+Content-Type: application/json
+anthropic-version: 2023-06-01
+
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "max_tokens": 256,
+  "temperature": 0.2,
+  "stream": false,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Write a short haiku about streaming SSE."
+    }
+  ]
+}
+
+### Streaming (Anthropic Messages SSE)
+# Note: JetBrains HTTP Client supports basic streaming display, but some UIs still buffer.
+# If you don’t see incremental chunks, try curl.exe -N.
+POST http://localhost:4500/v1/messages
+Content-Type: application/json
+Accept: text/event-stream
+anthropic-version: 2023-06-01
+
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "max_tokens": 128,
+  "temperature": 0.2,
+  "stream": true,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Say hello slowly, one word at a time."
+    }
+  ]
+}
+
+### Streaming with tools (example skeleton)
+# This only works if your upstream provider + adapter tools mapping is configured.
+POST http://localhost:4500/v1/messages
+Content-Type: application/json
+Accept: text/event-stream
+anthropic-version: 2023-06-01
+
+{
+  "model": "claude-3-5-sonnet-20241022",
+  "max_tokens": 128,
+  "stream": true,
+  "tools": [
+    {
+      "name": "get_time",
+      "description": "Return the current time",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "content": "Call get_time and then tell me the result."
+    }
+  ]
+}
+

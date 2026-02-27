@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/solution files/">
+    <File Path=".csharpierignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="dotnet-tools.json" />
+    <File Path="global.json" />
+    <File Path="readme.md" />
+  </Folder>
+  <Folder Name="/solution files/http/">
+    <File Path="http/claude-code-gateway.http" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ClaudeCodeGateway/ClaudeCodeGateway.csproj" />
+    <Project Path="src/Common/Common.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ClaudeCodeGateway.Tests/ClaudeCodeGateway.Tests.csproj" />
+  </Folder>
+</Solution>
