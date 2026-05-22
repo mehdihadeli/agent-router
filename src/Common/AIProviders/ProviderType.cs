@@ -5,4 +5,5 @@ public enum ProviderType
     Ollama,
     Azure,
     OpenAI,
+    GitHubModels,
 }

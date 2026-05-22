@@ -11,6 +11,8 @@ namespace Common.AIProviders;
 
 public static class ClientExtensions
 {
+    private const string GitHubModelsDefaultEndpoint = "https://models.github.ai/inference/";
+
     public static IHostApplicationBuilder AddAIProviderChatClient(
         this IHostApplicationBuilder builder
     )
@@ -43,8 +45,11 @@ public static class ClientExtensions
             foreach (var providerModel in provider.Models)
             {
                 // like `azure/gpt-4.1`, `azure/gpt-4`
-                var providerModelKey = RouteModelFactory.GetProviderModelName(provider.ProviderType, providerModel);
-                
+                var providerModelKey = RouteModelFactory.GetProviderModelName(
+                    provider.ProviderType,
+                    providerModel
+                );
+
                 switch (provider.ProviderType)
                 {
                     case ProviderType.Azure:
@@ -65,6 +70,17 @@ public static class ClientExtensions
                             baseAddress: provider.BaseAddress,
                             apiKey: provider.ApiKey,
                             deploymentName: providerModel,
+                            model: providerModel,
+                            enableTelemetry: options.EnableTelemetry,
+                            providerModelKey
+                        );
+                        break;
+
+                    case ProviderType.GitHubModels:
+                        RegisterGitHubModels(
+                            builder,
+                            baseAddress: provider.BaseAddress,
+                            apiKey: provider.ApiKey,
                             model: providerModel,
                             enableTelemetry: options.EnableTelemetry,
                             providerModelKey
@@ -114,6 +130,17 @@ public static class ClientExtensions
                     baseAddress: searchRouteModel.Provider.BaseAddress,
                     apiKey: searchRouteModel.Provider.ApiKey,
                     deploymentName: searchRouteModel.Model,
+                    model: searchRouteModel.Model,
+                    enableTelemetry: options.EnableTelemetry,
+                    providerModelKey: RouteModelKeys.Search
+                );
+                break;
+
+            case ProviderType.GitHubModels:
+                RegisterGitHubModels(
+                    builder,
+                    baseAddress: searchRouteModel.Provider.BaseAddress,
+                    apiKey: searchRouteModel.Provider.ApiKey,
                     model: searchRouteModel.Model,
                     enableTelemetry: options.EnableTelemetry,
                     providerModelKey: RouteModelKeys.Search
@@ -174,6 +201,24 @@ public static class ClientExtensions
                     providerModelKey: RouteModelKeys.Default
                 );
                 break;
+
+            case ProviderType.GitHubModels:
+                RegisterGitHubModels(
+                    builder,
+                    baseAddress: defaultRouteModel.Provider.BaseAddress,
+                    apiKey: defaultRouteModel.Provider.ApiKey,
+                    model: defaultRouteModel.Model,
+                    enableTelemetry: options.EnableTelemetry
+                );
+                RegisterGitHubModels(
+                    builder,
+                    baseAddress: defaultRouteModel.Provider.BaseAddress,
+                    apiKey: defaultRouteModel.Provider.ApiKey,
+                    model: defaultRouteModel.Model,
+                    enableTelemetry: options.EnableTelemetry,
+                    providerModelKey: RouteModelKeys.Default
+                );
+                break;
         }
     }
 
@@ -214,7 +259,44 @@ public static class ClientExtensions
                     providerModelKey: RouteModelKeys.Thinking
                 );
                 break;
+
+            case ProviderType.GitHubModels:
+
+                RegisterGitHubModels(
+                    builder,
+                    baseAddress: thinkingRouteModel.Provider.BaseAddress,
+                    apiKey: thinkingRouteModel.Provider.ApiKey,
+                    model: thinkingRouteModel.Model,
+                    enableTelemetry: options.EnableTelemetry,
+                    providerModelKey: RouteModelKeys.Thinking
+                );
+                break;
         }
+    }
+
+    private static void RegisterGitHubModels(
+        IHostApplicationBuilder builder,
+        string baseAddress,
+        string apiKey,
+        string model,
+        bool enableTelemetry,
+        object? providerModelKey = null
+    )
+    {
+        var endpoint = string.IsNullOrWhiteSpace(baseAddress)
+            ? GitHubModelsDefaultEndpoint
+            : baseAddress;
+
+        // GitHub Models is OpenAI-compatible; model id is used as deploymentName.
+        RegisterOpenAI(
+            builder,
+            baseAddress: endpoint,
+            apiKey: apiKey,
+            deploymentName: model,
+            model: model,
+            enableTelemetry: enableTelemetry,
+            providerModelKey: providerModelKey
+        );
     }
 
     private static void RegisterAzureAI(

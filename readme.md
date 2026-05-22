@@ -1,6 +1,6 @@
 # claude-code-gateway
 
-Anthropic (Claude Messages API) compatible gateway that proxies requests to **OpenAI-format** providers (OpenAI / Azure OpenAI, etc.).
+Anthropic (Claude Messages API) compatible gateway that proxies requests to **OpenAI-format** providers (OpenAI / Azure OpenAI / GitHub Models, etc.).
 
 ## Quick start (Claude Code)
 
@@ -53,7 +53,7 @@ $env:CCG_CREATE_USER_CONFIG = "true"
 Most settings live under the `AgentFrameworkOptions` section (see `src/Common/AIProviders/AgentFrameworkOptions.cs`).
 Common keys:
 
-- `AgentFrameworkOptions:ChatProviderType` (e.g. `OpenAI` or `Azure`)
+- `AgentFrameworkOptions:ChatProviderType` (e.g. `OpenAI`, `Azure`, or `GitHubModels`)
 - `AgentFrameworkOptions:ChatEndpoint`
 - `AgentFrameworkOptions:ChatApiKey`
 - `AgentFrameworkOptions:ChatDeploymentName` (required for Azure)
@@ -90,3 +90,30 @@ $env:AgentFrameworkOptions__ChatDeploymentName = "gpt-4.1"
 $env:AgentFrameworkOptions__ChatModel          = "gpt-4.1"
 $env:AgentFrameworkOptions__Temperature        = "0.2"
 ```
+
+## Example: GitHub Models provider
+
+```json
+{
+  "GatewayBaseAddress": "http://localhost:4000",
+  "EnableTelemetry": false,
+  "Providers": [
+    {
+      "ProviderType": "GitHubModels",
+      "BaseAddress": "https://models.github.ai/inference/",
+      "ApiKey": "$GITHUB_TOKEN",
+      "Models": ["openai/gpt-4.1"]
+    }
+  ],
+  "RouteModel": {
+    "DefaultModel": "github/openai/gpt-4.1",
+    "ThinkingModel": "github/openai/gpt-4.1",
+    "SearchModel": "github/openai/gpt-4.1"
+  }
+}
+```
+
+Notes:
+- GitHub Models is registered through the OpenAI-compatible client path.
+- Provider route name is `github`, so route keys look like `github/<model-id>`.
+
