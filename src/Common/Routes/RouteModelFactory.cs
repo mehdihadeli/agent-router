@@ -36,12 +36,9 @@ public static class RouteModelFactory
             );
         }
 
-        // Find provider by name (preferred) and fall back to ProviderType name match.
+        // Find provider by configured type name or known aliases (e.g. github -> GitHubModels).
         ClaudeGatewayProvider? provider = options.Providers.FirstOrDefault(p =>
-            string.Equals(p.ProviderType.ToString(),
-                providerName,
-                StringComparison.OrdinalIgnoreCase
-            )
+            IsProviderNameMatch(p.ProviderType, providerName)
         );
 
         if (provider is null)
@@ -51,7 +48,7 @@ public static class RouteModelFactory
             );
         }
 
-        var effectiveProviderName = provider.ProviderType.ToString().ToLowerInvariant();
+        var effectiveProviderName = GetProviderRouteName(provider.ProviderType);
 
         if (provider.Models is null || provider.Models.Length == 0)
         {
@@ -90,7 +87,7 @@ public static class RouteModelFactory
     public static string GetProviderModelName(ProviderType providerType, string model)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
-        return $"{providerType.ToString().ToLowerInvariant()}/{model}";
+        return $"{GetProviderRouteName(providerType)}/{model}";
     }
 
     /// <summary>
@@ -108,27 +105,42 @@ public static class RouteModelFactory
         if (string.IsNullOrWhiteSpace(modelRoute))
             return Common.Constants.RouteModelKeys.Default;
 
-        var parts = modelRoute.Split('/', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var parts = modelRoute.Split(
+            '/',
+            2,
+            StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
+        );
 
         if (parts.Length != 2)
             return Common.Constants.RouteModelKeys.Default;
 
         var providerName = parts[0];
-        var model        = parts[1];
+        var model = parts[1];
 
         // Verify the provider is configured so we don't hand out a key that has no registration.
         var providerExists = options.Providers.Any(p =>
-            string.Equals(p.ProviderType.ToString(), providerName, StringComparison.OrdinalIgnoreCase));
+            IsProviderNameMatch(p.ProviderType, providerName)
+        );
 
         if (!providerExists)
             return Common.Constants.RouteModelKeys.Default;
 
         // Return the normalised lowercase key, matching what GetProviderModelName produces.
-        return $"{providerName.ToLowerInvariant()}/{model}";
+        var providerType = ParseProviderType(providerName);
+        return $"{GetProviderRouteName(providerType)}/{model}";
     }
 
     public static ProviderType ParseProviderType(string providerName)
     {
+        if (
+            string.Equals(providerName, "github", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(providerName, "githubmodels", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(providerName, "github-models", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return ProviderType.GitHubModels;
+        }
+
         if (Enum.TryParse<ProviderType>(providerName, ignoreCase: true, out var pt))
             return pt;
 
@@ -136,5 +148,28 @@ public static class RouteModelFactory
             $"Unknown provider type '{providerName}'.",
             nameof(providerName)
         );
+    }
+
+    private static bool IsProviderNameMatch(ProviderType providerType, string providerName)
+    {
+        if (
+            string.Equals(providerType.ToString(), providerName, StringComparison.OrdinalIgnoreCase)
+        )
+            return true;
+
+        return string.Equals(
+            GetProviderRouteName(providerType),
+            providerName,
+            StringComparison.OrdinalIgnoreCase
+        );
+    }
+
+    private static string GetProviderRouteName(ProviderType providerType)
+    {
+        return providerType switch
+        {
+            ProviderType.GitHubModels => "github",
+            _ => providerType.ToString().ToLowerInvariant(),
+        };
     }
 }
