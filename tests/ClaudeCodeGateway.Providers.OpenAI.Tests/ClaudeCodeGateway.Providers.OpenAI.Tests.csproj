@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ClaudeCodeGateway.Providers.OpenAI.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClaudeCodeGateway.Providers.OpenAI\ClaudeCodeGateway.Providers.OpenAI.csproj" />
+  </ItemGroup>
+</Project>

@@ -8,15 +8,37 @@
     <File Path="dotnet-tools.json" />
     <File Path="global.json" />
     <File Path="readme.md" />
+    <File Path="version.json" />
   </Folder>
-  <Folder Name="/solution files/http/">
-    <File Path="http/claude-code-gateway.http" />
+  <Folder Name="/docs/">
+    <File Path="docs/index.md" />
+    <File Path="docs/features.md" />
+    <File Path="docs/integrations.md" />
+  </Folder>
+  <Folder Name="/docs/guide/">
+    <File Path="docs/guide/development.md" />
+    <File Path="docs/guide/project-structure.md" />
+  </Folder>
+  <Folder Name="/docs/reference/">
+    <File Path="docs/reference/cli.md" />
+    <File Path="docs/reference/configuration.md" />
+    <File Path="docs/reference/testing.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/ClaudeCodeGateway/ClaudeCodeGateway.csproj" />
-    <Project Path="src/Common/Common.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Api/ClaudeCodeGateway.Api.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Cli/ClaudeCodeGateway.Cli.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Core/ClaudeCodeGateway.Core.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Hosting/ClaudeCodeGateway.Hosting.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Providers.OpenAI/ClaudeCodeGateway.Providers.OpenAI.csproj" />
+    <Project Path="src/ClaudeCodeGateway.Server/ClaudeCodeGateway.Server.csproj" />
+    <Project Path="src/ClaudeCodeGateway.ServiceDefaults/ClaudeCodeGateway.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/ClaudeCodeGateway.Tests/ClaudeCodeGateway.Tests.csproj" />
+    <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/ClaudeCodeGateway.Api.Tests/ClaudeCodeGateway.Api.Tests.csproj" />
+    <Project Path="tests/ClaudeCodeGateway.Cli.Tests/ClaudeCodeGateway.Cli.Tests.csproj" />
+    <Project Path="tests/ClaudeCodeGateway.Core.Tests/ClaudeCodeGateway.Core.Tests.csproj" />
+    <Project Path="tests/ClaudeCodeGateway.Hosting.Tests/ClaudeCodeGateway.Hosting.Tests.csproj" />
+    <Project Path="tests/ClaudeCodeGateway.Providers.OpenAI.Tests/ClaudeCodeGateway.Providers.OpenAI.Tests.csproj" />
   </Folder>
 </Solution>

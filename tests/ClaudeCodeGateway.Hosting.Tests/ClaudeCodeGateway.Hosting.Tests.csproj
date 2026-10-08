@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ClaudeCodeGateway.Hosting.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ClaudeCodeGateway.Core\ClaudeCodeGateway.Core.csproj" />
+    <ProjectReference Include="..\..\src\ClaudeCodeGateway.Hosting\ClaudeCodeGateway.Hosting.csproj" />
+  </ItemGroup>
+</Project>

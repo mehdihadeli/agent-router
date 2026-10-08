@@ -11,4 +11,7 @@
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
+  <ItemGroup Label="Versioning">
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
