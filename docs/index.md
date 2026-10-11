@@ -1,19 +1,17 @@
-# Claude Code Gateway Docs
+# Agent Router Docs
 
-This repository follows a simple layout modeled after the GroundKit project:
+The runtime has three production projects:
 
-- `src/ClaudeCodeGateway.Cli` contains the executable CLI entry point.
-- `src/ClaudeCodeGateway.Server` contains the standalone web executable.
-- `src/ClaudeCodeGateway.Api` contains the Anthropic protocol adapter.
-- `src/ClaudeCodeGateway.Core` contains route, options, and provider contracts.
-- `src/ClaudeCodeGateway.Hosting` contains configuration and host composition.
-- `src/ClaudeCodeGateway.Providers.OpenAI` contains OpenAI-compatible provider registrations.
-- `src/ClaudeCodeGateway.ServiceDefaults` contains service defaults for host concerns.
-- Namespace families follow the same split: `ClaudeCodeGateway.Cli`, `ClaudeCodeGateway`, `ClaudeCodeGateway.ErrorHandling`, `ClaudeCodeGateway.Shared.*`, and `Microsoft.Extensions.Hosting` for `ServiceDefaults` extensions.
-- `tests/ClaudeCodeGateway.Tests` contains integration and unit coverage for the gateway.
+- `src/AgentRouter.Cli` contains the executable CLI entry point.
+- `src/AgentRouter.Core` contains protocol adapters, routing, provider integration, configuration, storage, and host composition.
+- `src/AgentRouter.ServiceDefaults` contains service defaults for host concerns.
+- Namespace families follow the same split: `AgentRouter.Cli`, `AgentRouter`, `AgentRouter.ErrorHandling`, `AgentRouter.Shared.*`, and `Microsoft.Extensions.Hosting` for `ServiceDefaults` extensions.
+- Core.Tests and Cli.Tests mirror source ownership with Unit and Integration folders; ServiceDefaults has no test project.
 - `docs/` contains user and contributor documentation.
 
 Start here:
+
+- [Reference feature coverage](reference/feature-parity.md) for supported behavior, missing capabilities, and implementation priorities.
 
 - `features.md` for the main runtime capabilities.
 - `integrations.md` for provider and client integration notes.

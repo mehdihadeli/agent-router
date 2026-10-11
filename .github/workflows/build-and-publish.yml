@@ -30,14 +30,17 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Restore local tools
+        run: dotnet tool restore
+
       - name: Restore
-        run: dotnet restore claude-code-gateway.slnx
+        run: dotnet restore agent-router.slnx
 
       - name: Build
-        run: dotnet build claude-code-gateway.slnx --configuration Release --no-restore
+        run: dotnet build agent-router.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --solution claude-code-gateway.slnx --configuration Release --no-build
+        run: dotnet test --solution agent-router.slnx --configuration Release --no-build
 
   calculate-version:
     name: Calculate release version
@@ -49,6 +52,7 @@ jobs:
       assembly_version: ${{ steps.version.outputs.assembly_version }}
       informational_version: ${{ steps.version.outputs.informational_version }}
       environment: ${{ steps.version.outputs.environment }}
+      docker_tag: ${{ steps.version.outputs.docker_tag }}
       commit: ${{ steps.version.outputs.commit }}
 
     steps:
@@ -69,7 +73,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          NBGV="$RUNNER_TEMP/nbgv/nbgv" ./calculate-version.sh
+          NBGV="$RUNNER_TEMP/nbgv/nbgv" bash ./scripts/calculate-version.sh
 
   publish:
     name: Publish package and release
@@ -94,13 +98,38 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore src/ClaudeCodeGateway.Cli/ClaudeCodeGateway.Cli.csproj
+        run: dotnet restore src/AgentRouter.Cli/AgentRouter.Cli.csproj
 
       - name: Pack
-        run: dotnet pack src/ClaudeCodeGateway.Cli/ClaudeCodeGateway.Cli.csproj --configuration Release --no-restore --output artifacts -p:PublicRelease=true -p:PackageVersion=${{ needs.calculate-version.outputs.version }}
+        run: dotnet pack src/AgentRouter.Cli/AgentRouter.Cli.csproj --configuration Release --no-restore --output artifacts -p:PublicRelease=true -p:PackageVersion=${{ needs.calculate-version.outputs.version }}
 
       - name: Publish to NuGet.org
         run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish self-contained executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          for runtime in linux-x64 osx-x64 osx-arm64 win-x64; do
+            publish_dir="release/$runtime"
+            mkdir -p "$publish_dir"
+            dotnet publish src/AgentRouter.Cli/AgentRouter.Cli.csproj \
+              --configuration Release \
+              --runtime "$runtime" \
+              --self-contained true \
+              --output "$publish_dir" \
+              -p:PublishSingleFile=true \
+              -p:IncludeNativeLibrariesForSelfExtract=true \
+              -p:PublishTrimmed=false
+
+            if [[ "$runtime" == win-* ]]; then
+              mv "$publish_dir/AgentRouter.Cli.exe" "$publish_dir/ar.exe"
+              (cd "$publish_dir" && zip -q "../../artifacts/agent-router-$runtime.zip" ar.exe)
+            else
+              mv "$publish_dir/AgentRouter.Cli" "$publish_dir/ar"
+              tar -czf "artifacts/agent-router-$runtime.tar.gz" -C "$publish_dir" ar
+            fi
+          done
 
       - name: Update Release Drafter release
         if: always()
@@ -114,3 +143,9 @@ jobs:
           prerelease: ${{ contains(needs.calculate-version.outputs.version, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', needs.calculate-version.outputs.version) }}" artifacts/*.nupkg artifacts/agent-router-* --clobber

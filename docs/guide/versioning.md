@@ -1,6 +1,6 @@
 # Release versioning
 
-Claude Code Gateway uses Nerdbank.GitVersioning (NBGV) with GitHub Flow.
+Agent Router uses Nerdbank.GitVersioning (NBGV) with GitHub Flow.
 `main` is the long-lived branch. Changes arrive through pull requests, and
 release tags are created only from approved commits on `main`.
 
@@ -56,7 +56,7 @@ monotonically increasing GitHub Actions workflow run number. The date and run
 number distinguish separately built preview or RC packages; they do not replace
 the NBGV preview or RC ordinal.
 
-The workflow publishes the `ClaudeCodeGateway` CLI package to NuGet.org. It
+The workflow publishes the `AgentRouter` CLI package to NuGet.org. It
 does not currently publish self-contained archives, container images, or deploy
 to an environment. The environment names describe release intent and CI
 permissions.
@@ -148,7 +148,7 @@ The workflow uses these stages:
 1. `build-test` restores, builds, and tests the solution.
 2. `calculate-version` runs [`calculate-version.sh`](../../calculate-version.sh),
    validates release tags, and selects the effective version and environment.
-3. `publish` packs `ClaudeCodeGateway`, pushes it to NuGet.org, and updates or
+3. `publish` packs `AgentRouter`, pushes it to NuGet.org, and updates or
    publishes the matching Release Drafter release.
 
 For a syntactically valid release tag, CI removes the `v` prefix and compares
@@ -167,8 +167,8 @@ Before pushing a release tag, run:
 ```bash
 bash -n calculate-version.sh
 bash -n release-version.sh
-dotnet test --solution claude-code-gateway.slnx --configuration Release
-dotnet pack src/ClaudeCodeGateway.Cli/ClaudeCodeGateway.Cli.csproj --configuration Release --output artifacts
+dotnet test --solution agent-router.slnx --configuration Release
+dotnet pack src/AgentRouter.Cli/AgentRouter.Cli.csproj --configuration Release --output artifacts
 ```
 
 Then inspect `version.json`, confirm the tag was created from the merged `main`

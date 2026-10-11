@@ -41,20 +41,19 @@ The gateway acts as a local Anthropic-compatible HTTP server. The protocol trans
 flowchart LR
     C[Claude Code] <--> A[Claude Adapter]
     A <--> O[OpenAI-compatible endpoint]
-    A <--> G[Gemini endpoint]
 ```
 
 The local proxy listens only on `127.0.0.1` and requires a generated proxy token, so Claude Code can use the gateway without changes to its binary.
 
 ## Future direction
 
-- Web/Aspire dashboard and future Electron observability application.
+- Angular management and observability UI, followed by an Electron shell. An external OTLP receiver or standalone Aspire dashboard is optional; no AppHost is required.
 
 ## Code map
 
-- `src/ClaudeCodeGateway.Api/Features/CreatingMessage`: message endpoint.
-- `src/ClaudeCodeGateway.Api/Converters`: Anthropic and Microsoft.Extensions.AI conversion.
-- `src/ClaudeCodeGateway.Api/ErrorHandling`: Anthropic error mapping.
-- `src/ClaudeCodeGateway.Core/Routes`: route model selection.
-- `src/ClaudeCodeGateway.Providers.OpenAI`: provider registrations.
-- `src/ClaudeCodeGateway.Hosting`: configuration and application composition.
+- `src/AgentRouter.Core/Api/Features/CreatingMessage`: message endpoint.
+- `src/AgentRouter.Core/Api/Converters`: Anthropic and Microsoft.Extensions.AI conversion.
+- `src/AgentRouter.Core/Api/ErrorHandling`: Anthropic error mapping.
+- `src/AgentRouter.Core/Routes`: route model selection.
+- `src/AgentRouter.Core/Providers`: provider registrations.
+- `src/AgentRouter.Core/Hosting`: configuration and application composition.

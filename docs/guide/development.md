@@ -5,25 +5,25 @@
 Build:
 
 ```bash
-dotnet build claude-code-gateway.slnx --configuration Release
+dotnet build agent-router.slnx --configuration Release
 ```
 
 Test:
 
 ```bash
-dotnet test --solution claude-code-gateway.slnx --configuration Release
+dotnet test --solution agent-router.slnx --configuration Release
 ```
 
 Run with repo launcher:
 
 ```bash
-./claude-code-gateway serve --port 4600
+./agent-router serve --port 4600
 ```
 
 Pack tool locally:
 
 ```bash
-dotnet pack src/ClaudeCodeGateway.Cli/ClaudeCodeGateway.Cli.csproj --configuration Release --output artifacts
+dotnet pack src/AgentRouter.Cli/AgentRouter.Cli.csproj --configuration Release --output artifacts
 ```
 
 ## Configuration flow
@@ -33,7 +33,7 @@ The gateway loads configuration from:
 1. Command-line arguments
 2. Environment variables
 3. `appsettings.json` and environment-specific variants
-4. `~/claude-code-gateway/config.json`
+4. `~/agent-router/config.json`
 5. `~/.claude/settings.json`
 6. Local `.env`
 
@@ -41,6 +41,6 @@ Use `CCG_CREATE_USER_CONFIG=true` to auto-create the user config file when suppo
 
 ## Shared projects
 
-- `src/ClaudeCodeGateway.Core` keeps route, options, and provider contracts.
-- `src/ClaudeCodeGateway.Providers.OpenAI` owns OpenAI-compatible provider registrations.
-- `src/ClaudeCodeGateway.ServiceDefaults` owns health checks, OpenTelemetry, resilience, and service discovery defaults.
+- `src/AgentRouter.Core` owns the gateway library, including API, routing, provider integrations, storage, and hosting folders.
+- `src/AgentRouter.Cli` owns the executable and commands.
+- `src/AgentRouter.ServiceDefaults` owns health checks, OpenTelemetry, resilience, and service discovery defaults.

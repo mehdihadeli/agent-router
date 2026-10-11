@@ -6,7 +6,7 @@ The current integration boundary is:
 Claude Code or Anthropic client
         |
         v
-ClaudeCodeGateway.Api
+AgentRouter.Api
         |
         v
 Claude/OpenAI/Gemini translation layer
@@ -32,6 +32,6 @@ Current provider registrations support:
 
 The gateway translates requests and responses between Claude, OpenAI, and Gemini formats. SSE streaming and tool definitions/function calls are preserved across the translation boundary.
 
-Provider registration belongs in `src/ClaudeCodeGateway.Providers.OpenAI`. Protocol conversion belongs in `src/ClaudeCodeGateway.Api`. Route and configuration policy belongs in `src/ClaudeCodeGateway.Core` and `src/ClaudeCodeGateway.Hosting`.
+Provider registration belongs in `src/AgentRouter.Providers.OpenAI`. Protocol conversion belongs in `src/AgentRouter.Api`. Route and configuration policy belongs in `src/AgentRouter.Core` and `src/AgentRouter.Hosting`.
 
 The `/v1/models` integration provides cached model discovery with on-demand refresh. Usage statistics are updated from events and can be queried for today, yesterday, this week, or this month.

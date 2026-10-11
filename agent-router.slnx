@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/solution files/">
+    <File Path=".csharpierignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="dotnet-tools.json" />
+    <File Path="global.json" />
+    <File Path="readme.md" />
+    <File Path="version.json" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/index.md" />
+    <File Path="docs/features.md" />
+    <File Path="docs/integrations.md" />
+  </Folder>
+  <Folder Name="/docs/guide/">
+    <File Path="docs/guide/development.md" />
+    <File Path="docs/guide/project-structure.md" />
+  </Folder>
+  <Folder Name="/docs/reference/">
+    <File Path="docs/reference/cli.md" />
+    <File Path="docs/reference/configuration.md" />
+    <File Path="docs/reference/testing.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AgentRouter.Cli/AgentRouter.Cli.csproj" />
+    <Project Path="src/AgentRouter.Core/AgentRouter.Core.csproj" />
+    <Project Path="src/AgentRouter.ServiceDefaults/AgentRouter.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/AgentRouter.Cli.Tests/AgentRouter.Cli.Tests.csproj" />
+    <Project Path="tests/AgentRouter.Core.Tests/AgentRouter.Core.Tests.csproj" />
+  </Folder>
+</Solution>

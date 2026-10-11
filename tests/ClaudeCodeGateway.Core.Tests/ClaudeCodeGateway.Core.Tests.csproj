@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>ClaudeCodeGateway.Core.Tests</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\ClaudeCodeGateway.Core\ClaudeCodeGateway.Core.csproj" />
-  </ItemGroup>
-</Project>

@@ -2,11 +2,10 @@
 
 Test projects:
 
-- `tests/ClaudeCodeGateway.Api.Tests/ClaudeCodeGateway.Api.Tests.csproj`
-- `tests/ClaudeCodeGateway.Cli.Tests/ClaudeCodeGateway.Cli.Tests.csproj`
-- `tests/ClaudeCodeGateway.Core.Tests/ClaudeCodeGateway.Core.Tests.csproj`
-- `tests/ClaudeCodeGateway.Hosting.Tests/ClaudeCodeGateway.Hosting.Tests.csproj`
-- `tests/ClaudeCodeGateway.Providers.OpenAI.Tests/ClaudeCodeGateway.Providers.OpenAI.Tests.csproj`
+- `tests/AgentRouter.Cli.Tests/AgentRouter.Cli.Tests.csproj`
+- `tests/AgentRouter.Core.Tests/AgentRouter.Core.Tests.csproj`
+
+Test projects mirror the Core and CLI source projects. ServiceDefaults has no dedicated test project.
 
 Layout:
 
@@ -24,11 +23,10 @@ Build configuration:
 
 Current project split:
 
-- `tests/ClaudeCodeGateway.Api.Tests`: converter behavior, request validation, exception mapping, and hosted HTTP pipeline tests.
-- `tests/ClaudeCodeGateway.Cli.Tests`: end-to-end CLI host wiring tests.
-- `tests/ClaudeCodeGateway.Core.Tests`: routes, option validation, and core policy tests.
-- `tests/ClaudeCodeGateway.Hosting.Tests`: configuration providers, option binding, and Claude settings writer tests.
-- `tests/ClaudeCodeGateway.Providers.OpenAI.Tests`: provider registration contract tests.
+- `tests/AgentRouter.Core.Tests`: routes, adapters, provider transports, configuration, and storage. Feature folders sit under `Unit/` and `Integration/`; shared storage fixture lives under `Support/`.
+- `tests/AgentRouter.Cli.Tests`: command validation under `Unit/`, subprocess configuration and hosted gateway workflows under `Integration/`.
+
+Core HTTP integration fixtures reference the CLI executable only as the marker required by WebApplicationFactory. They still build the gateway library host directly. Existing test namespaces are preserved so test filters remain compatible.
 
 Test stack:
 
@@ -48,5 +46,11 @@ Covered areas:
 Run all tests:
 
 ```bash
-dotnet test --solution claude-code-gateway.slnx --configuration Release
+dotnet test --solution agent-router.slnx --configuration Release
+```
+
+Run without paid-provider tests:
+
+```bash
+dotnet test --solution agent-router.slnx --filter-not-class AgentRouter.Tests.EndToEndGatewayToolWiringTests --filter-not-class AgentRouter.Providers.OpenAI.Tests.LiveProviderTests
 ```
