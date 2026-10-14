@@ -10,9 +10,6 @@
     <File Path="readme.md" />
     <File Path="version.json" />
   </Folder>
-  <Folder Name="/.testagent/">
-    <Project Path=".testagent/NamespaceMigration/NamespaceMigration.csproj" />
-  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/integrations.md" />
   </Folder>
