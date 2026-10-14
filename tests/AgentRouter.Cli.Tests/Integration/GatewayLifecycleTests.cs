@@ -342,7 +342,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
             new GatewayServiceIdentity(
                 Guid.NewGuid().ToString("N"),
                 current.Id,
-                current.StartTime.ToUniversalTime().Ticks - 1,
+                current.StartTime.ToUniversalTime().Ticks - TimeSpan.FromSeconds(1).Ticks,
                 "stale"
             ),
             "http://127.0.0.1:1",

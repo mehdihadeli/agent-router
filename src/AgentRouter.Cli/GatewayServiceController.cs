@@ -36,6 +36,9 @@ public sealed class GatewayServiceController(
     private const int StandardInputHandle = -10;
     private const int StandardOutputHandle = -11;
     private const int StandardErrorHandle = -12;
+
+    // Linux's procfs-based start time can vary slightly across processes inspecting the same PID.
+    private const long LinuxProcessStartTimeToleranceTicks = TimeSpan.TicksPerMillisecond * 10;
     private string StatePath => Path.Combine(paths.RootDirectory, "service.json");
     private string LockPath => Path.Combine(paths.RootDirectory, "service.lock");
 
@@ -163,7 +166,7 @@ public sealed class GatewayServiceController(
                 "Service identity could not be verified. Refusing to stop an unverified process."
             );
         using var process = Process.GetProcessById(state.Identity.ProcessId);
-        if (process.StartTime.ToUniversalTime().Ticks != state.Identity.ProcessStartTicks)
+        if (!HasMatchingStartTime(process, state.Identity.ProcessStartTicks))
             throw new InvalidOperationException(
                 "Service process identity changed. No process was stopped."
             );
@@ -469,8 +472,7 @@ public sealed class GatewayServiceController(
         try
         {
             using var process = Process.GetProcessById(identity.ProcessId);
-            return !process.HasExited
-                && process.StartTime.ToUniversalTime().Ticks == identity.ProcessStartTicks;
+            return !process.HasExited && HasMatchingStartTime(process, identity.ProcessStartTicks);
         }
         catch (ArgumentException)
         {
@@ -486,6 +488,13 @@ public sealed class GatewayServiceController(
                 "Cannot inspect service process identity. No process was changed."
             );
         }
+    }
+
+    private static bool HasMatchingStartTime(Process process, long expectedStartTicks)
+    {
+        var actualStartTicks = process.StartTime.ToUniversalTime().Ticks;
+        var tolerance = OperatingSystem.IsLinux() ? LinuxProcessStartTimeToleranceTicks : 0;
+        return Math.Abs(actualStartTicks - expectedStartTicks) <= tolerance;
     }
 
     private static ProcessStartInfo ChildStartInfo()

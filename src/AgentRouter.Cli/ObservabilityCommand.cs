@@ -1,4 +1,5 @@
-﻿using AgentRouter.Core.Storage;
+﻿using System.Globalization;
+using AgentRouter.Core.Storage;
 using AgentRouter.Core.Storage.Sqlite;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -32,7 +33,9 @@ public sealed class ObservabilityCommand(SqliteConnectionFactory connections)
         );
         AnsiConsole.WriteLine($"Window: {summary.From:O} to {summary.To:O}");
         AnsiConsole.WriteLine($"Requests: {summary.Requests}");
-        AnsiConsole.WriteLine($"Success rate: {summary.SuccessRate:P1}");
+        AnsiConsole.WriteLine(
+            $"Success rate: {summary.SuccessRate.ToString("0.0%", CultureInfo.InvariantCulture)}"
+        );
         AnsiConsole.WriteLine($"Errors: {summary.FailedRequests}");
         AnsiConsole.WriteLine($"Average latency: {summary.AverageLatencyMs:0.0} ms");
         AnsiConsole.WriteLine($"P95 latency: {summary.P95LatencyMs:0.0} ms");
