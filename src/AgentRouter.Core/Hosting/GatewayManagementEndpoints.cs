@@ -1,6 +1,6 @@
-using AgentRouter.Contracts.Configuration;
+﻿using AgentRouter.Core.Contracts.Configuration;
 
-namespace AgentRouter;
+namespace AgentRouter.Core.Hosting;
 
 /// <summary>Explicit provider settings; omitted key preserves an existing credential during updates.</summary>
 public sealed record WriteProviderRequest(
@@ -15,7 +15,14 @@ public sealed record WriteProviderRequest(
 public sealed record WriteProfileRequest(
     string? Model = null,
     string Executable = "claude",
-    bool Enabled = true
+    bool Enabled = true,
+    string Kind = "claude",
+    string EntryMode = "cli",
+    string Scope = "launch",
+    IReadOnlyDictionary<string, string>? TierModels = null,
+    Uri? TelemetryEndpoint = null,
+    IReadOnlyDictionary<string, string>? Environment = null,
+    string? WorkingDirectory = null
 );
 
 /// <summary>Model selector assigned to a routing tier.</summary>
@@ -36,7 +43,14 @@ public sealed record ManagementProfileResponse(
     string Name,
     bool Enabled,
     string? Model,
-    string Executable
+    string Executable,
+    string Kind,
+    string EntryMode,
+    string Scope,
+    IReadOnlyDictionary<string, string> TierModels,
+    Uri? TelemetryEndpoint,
+    IReadOnlyDictionary<string, string> Environment,
+    string? WorkingDirectory
 );
 
 /// <summary>Configured model-tier mapping.</summary>
@@ -80,7 +94,19 @@ public static class GatewayManagementEndpoints
                     profile.Name,
                     profile.Enabled,
                     profile.Model,
-                    profile.Executable
+                    profile.Executable,
+                    profile.Kind,
+                    profile.EntryMode,
+                    profile.Scope,
+                    profile.TierModels,
+                    profile.TelemetryEndpoint is null ? null : new Uri(profile.TelemetryEndpoint),
+                    new Dictionary<string, string>(
+                        profile.Environment.Keys.ToDictionary(
+                            key => key,
+                            StringComparer.OrdinalIgnoreCase
+                        )
+                    ),
+                    profile.WorkingDirectory
                 ))
                 .ToArray(),
             document
@@ -218,10 +244,43 @@ public static class GatewayManagementEndpoints
             {
                 if (!request.Enabled)
                     throw new ArgumentException("Create enabled profile first.");
+                GatewayAgentLauncher.ValidateProfile(
+                    new AgentProfile
+                    {
+                        Name = name,
+                        Kind = request.Kind.ToLowerInvariant(),
+                        EntryMode = request.EntryMode.ToLowerInvariant(),
+                        Scope = request.Scope.ToLowerInvariant(),
+                    }
+                );
                 await configuration.AddProfileAsync(
                     name,
                     request.Model,
                     request.Executable,
+                    request.Kind,
+                    cancellationToken
+                );
+                await configuration.SetProfileLaunchSettingsAsync(
+                    name,
+                    request.EntryMode,
+                    request.Scope,
+                    cancellationToken
+                );
+                if (request.TierModels is not null)
+                    await configuration.SetProfileTierModelsAsync(
+                        name,
+                        request.TierModels,
+                        cancellationToken
+                    );
+                await configuration.SetProfileTelemetryEndpointAsync(
+                    name,
+                    request.TelemetryEndpoint,
+                    cancellationToken
+                );
+                await configuration.SetProfileLaunchOptionsAsync(
+                    name,
+                    request.Environment,
+                    request.WorkingDirectory,
                     cancellationToken
                 );
                 return Results.Created(
@@ -239,11 +298,44 @@ public static class GatewayManagementEndpoints
                 CancellationToken cancellationToken
             ) =>
             {
+                GatewayAgentLauncher.ValidateProfile(
+                    new AgentProfile
+                    {
+                        Name = name,
+                        Kind = request.Kind.ToLowerInvariant(),
+                        EntryMode = request.EntryMode.ToLowerInvariant(),
+                        Scope = request.Scope.ToLowerInvariant(),
+                    }
+                );
                 await configuration.UpdateProfileAsync(
                     name,
                     request.Model,
                     request.Executable,
                     request.Enabled,
+                    cancellationToken
+                );
+                await configuration.SetProfileKindAsync(name, request.Kind, cancellationToken);
+                await configuration.SetProfileLaunchSettingsAsync(
+                    name,
+                    request.EntryMode,
+                    request.Scope,
+                    cancellationToken
+                );
+                if (request.TierModels is not null)
+                    await configuration.SetProfileTierModelsAsync(
+                        name,
+                        request.TierModels,
+                        cancellationToken
+                    );
+                await configuration.SetProfileTelemetryEndpointAsync(
+                    name,
+                    request.TelemetryEndpoint,
+                    cancellationToken
+                );
+                await configuration.SetProfileLaunchOptionsAsync(
+                    name,
+                    request.Environment,
+                    request.WorkingDirectory,
                     cancellationToken
                 );
                 return Results.NoContent();

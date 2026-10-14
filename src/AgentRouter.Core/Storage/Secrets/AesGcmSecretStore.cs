@@ -1,10 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
-using AgentRouter.Storage.Sqlite;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
+using AgentRouter.Core.Storage.Sqlite;
 
-namespace AgentRouter.Storage.Secrets;
+namespace AgentRouter.Core.Storage.Secrets;
 
 /// <summary>
 /// AES-256-GCM secret store backed by the <c>secret_entries</c> table. Every write uses a fresh

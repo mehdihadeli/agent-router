@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-
-namespace AgentRouter.Shared.DependencyInjection;
+namespace AgentRouter.Core.Hosting;
 
 public static class ConfigurationExtensions
 {

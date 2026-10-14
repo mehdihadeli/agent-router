@@ -1,7 +1,6 @@
-using Microsoft.Extensions.Hosting;
 using OpenAI;
 
-namespace AgentRouter.Shared.AIProviders.OpenAI;
+namespace AgentRouter.Core.Providers.OpenAI;
 
 public class OpenAIApiClientBuilder(
     IHostApplicationBuilder hostBuilder,

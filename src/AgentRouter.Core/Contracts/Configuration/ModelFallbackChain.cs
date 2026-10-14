@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>
 /// An ordered fallback chain exposed to Claude Code as a synthetic model id. When a target fails

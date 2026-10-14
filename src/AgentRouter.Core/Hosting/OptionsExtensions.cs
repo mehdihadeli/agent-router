@@ -1,10 +1,9 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
-namespace AgentRouter.Shared.DependencyInjection;
+namespace AgentRouter.Core.Hosting;
 
 public static class OptionsExtensions
 {

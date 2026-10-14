@@ -1,11 +1,12 @@
-using System.Text.Json;
-using AgentRouter.Contracts.Configuration;
-using AgentRouter.Contracts.Defaults;
-using AgentRouter.Contracts.Serialization;
-using AgentRouter.Storage.Configuration;
+﻿using System.Text.Json;
+using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Defaults;
+using AgentRouter.Core.Contracts.Serialization;
+using AgentRouter.Core.Storage.Configuration;
+using AgentRouter.Core.Tests.Support.Storage;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class SqliteConfigStoreTests
 {
@@ -55,7 +56,7 @@ public class SqliteConfigStoreTests
 
         await harness.ConfigStore.SaveAsync(document);
 
-        var storedJson = await ReadStoredConfigJsonAsync(harness);
+        var storedJson = await File.ReadAllTextAsync(harness.Paths.ConfigPath);
 
         Assert.DoesNotContain(PlaintextApiKey, storedJson, StringComparison.Ordinal);
         Assert.DoesNotContain("apiKey", storedJson, StringComparison.Ordinal);
@@ -166,22 +167,14 @@ public class SqliteConfigStoreTests
     }
 
     [Fact]
-    public async Task Load_Falls_Back_To_Defaults_For_Corrupt_Json()
+    public async Task Load_Rejects_Corrupt_Json()
     {
         using var harness = await StorageHarness.CreateAsync();
         await harness.ConfigStore.LoadAsync();
 
-        await using (var connection = await harness.ConnectionFactory.OpenAsync())
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText =
-                "UPDATE app_state SET value = '{ not valid json' WHERE key = 'config';";
-            await command.ExecuteNonQueryAsync();
-        }
+        await File.WriteAllTextAsync(harness.Paths.ConfigPath, "{ not valid json");
 
-        var document = await harness.ConfigStore.LoadAsync();
-
-        Assert.Equal(GatewayDefaults.ProxyPort, document.Server.ProxyPort);
+        await Assert.ThrowsAsync<InvalidDataException>(() => harness.ConfigStore.LoadAsync());
     }
 
     [Fact]
@@ -195,13 +188,7 @@ public class SqliteConfigStoreTests
             GatewayJson.Options
         );
 
-        await using (var connection = await harness.ConnectionFactory.OpenAsync())
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE app_state SET value = $value WHERE key = 'config';";
-            command.Parameters.AddWithValue("$value", sparse);
-            await command.ExecuteNonQueryAsync();
-        }
+        await File.WriteAllTextAsync(harness.Paths.ConfigPath, sparse);
 
         var document = await harness.ConfigStore.LoadAsync();
 
@@ -215,14 +202,5 @@ public class SqliteConfigStoreTests
         using var harness = await StorageHarness.CreateAsync();
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => harness.ConfigStore.SaveAsync(null!));
-    }
-
-    private static async Task<string> ReadStoredConfigJsonAsync(StorageHarness harness)
-    {
-        await using var connection = await harness.ConnectionFactory.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT value FROM app_state WHERE key = 'config';";
-
-        return (string)(await command.ExecuteScalarAsync())!;
     }
 }

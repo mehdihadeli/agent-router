@@ -1,11 +1,9 @@
-using System.ClientModel;
+﻿using System.ClientModel;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 
-namespace AgentRouter.Shared.AIProviders.Azure;
+namespace AgentRouter.Core.Providers.Azure;
 
 public static class AzureOpenAIExtensions
 {
@@ -16,8 +14,17 @@ public static class AzureOpenAIExtensions
         this IHostApplicationBuilder builder,
         AzureOpenAIApiClientSettings settings,
         object? serviceKey = null
+    ) => AddAzureOpenAIClient(builder, settings, serviceKey, 1);
+
+    public static AzureOpenAIApiClientBuilder AddAzureOpenAIClient(
+        this IHostApplicationBuilder builder,
+        AzureOpenAIApiClientSettings settings,
+        object? serviceKey,
+        int maxProviderAttempts
     )
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxProviderAttempts, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxProviderAttempts, 8);
         // Use the main endpoint if provided, otherwise fall back to chat endpoint
         ArgumentException.ThrowIfNullOrEmpty(settings.Endpoint, nameof(settings.Endpoint));
         var endpoint = new Uri(settings.Endpoint);
@@ -25,7 +32,16 @@ public static class AzureOpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(settings.ApiKey, nameof(settings.ApiKey));
         var credential = new ApiKeyCredential(settings.ApiKey);
 
-        var azureOpenAIClient = new AzureOpenAIClient(endpoint: endpoint, credential: credential);
+        var azureOpenAIClient = new AzureOpenAIClient(
+            endpoint: endpoint,
+            credential: credential,
+            options: new AzureOpenAIClientOptions
+            {
+                RetryPolicy = new System.ClientModel.Primitives.ClientRetryPolicy(
+                    maxProviderAttempts - 1
+                ),
+            }
+        );
         if (serviceKey is not null)
         {
             builder.Services.AddKeyedSingleton(serviceKey, azureOpenAIClient);
@@ -48,19 +64,22 @@ public static class AzureOpenAIExtensions
         bool useCache = false
     )
     {
-        var chatClientBuilder = azureOpenAiApiClientBuilder.HostBuilder.Services.AddKeyedChatClient(azureOpenAiApiClientBuilder.ServiceKey!, sp =>
-        {
-            var azureOpenAiClient = sp.GetRequiredKeyedService<AzureOpenAIClient>(
-                azureOpenAiApiClientBuilder.ServiceKey
-            );
-            // `OpenAIChatClient` implements `IChatClient`
-            // https://github.com/dotnet/extensions/blob/1eb963e2a9ec2a6501af082f058c3420ea5004a8/src/Libraries/Microsoft.Extensions.AI.OpenAI/OpenAIClientExtensions.cs#L110
-            IChatClient chatClient = azureOpenAiClient
-                .GetChatClient(deploymentName)
-                .AsIChatClient();
+        var chatClientBuilder = azureOpenAiApiClientBuilder.HostBuilder.Services.AddKeyedChatClient(
+            azureOpenAiApiClientBuilder.ServiceKey!,
+            sp =>
+            {
+                var azureOpenAiClient = sp.GetRequiredKeyedService<AzureOpenAIClient>(
+                    azureOpenAiApiClientBuilder.ServiceKey
+                );
+                // `OpenAIChatClient` implements `IChatClient`
+                // https://github.com/dotnet/extensions/blob/1eb963e2a9ec2a6501af082f058c3420ea5004a8/src/Libraries/Microsoft.Extensions.AI.OpenAI/OpenAIClientExtensions.cs#L110
+                IChatClient chatClient = azureOpenAiClient
+                    .GetChatClient(deploymentName)
+                    .AsIChatClient();
 
-            return chatClient;
-        });
+                return chatClient;
+            }
+        );
 
         if (!azureOpenAiApiClientBuilder.DisableTracing)
         {

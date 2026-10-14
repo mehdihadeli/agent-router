@@ -1,8 +1,7 @@
-using AgentRouter.Contracts.Stats;
-
-namespace AgentRouter.Contracts.Sessions;
-
 using System.Text.Json.Serialization;
+using AgentRouter.Core.Contracts.Stats;
+
+namespace AgentRouter.Core.Contracts.Sessions;
 
 /// <summary>
 /// One recorded Claude Code session: either currently running, completed, or recovered after a

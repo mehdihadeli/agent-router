@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Models.Anthropic;
+namespace AgentRouter.Core.Api.Models.Anthropic;
 
 /// <summary>
 /// Claude Code sometimes emits Anthropic-style content blocks without the "type" discriminator.
@@ -13,7 +13,8 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
     public override ContentBlock Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
-        JsonSerializerOptions options)
+        JsonSerializerOptions options
+    )
     {
         // Claude Code can send string blocks in arrays.
         if (reader.TokenType == JsonTokenType.String)
@@ -38,7 +39,7 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
                 "tool_use" => JsonSerializer.Deserialize<ToolUseBlock>(obj, options)!,
                 "tool_result" => JsonSerializer.Deserialize<ToolResultBlock>(obj, options)!,
                 "thinking" => JsonSerializer.Deserialize<ThinkingBlock>(obj, options)!,
-                _ => throw new JsonException($"Unknown content block type '{type}'.")
+                _ => throw new JsonException($"Unknown content block type '{type}'."),
             };
         }
 
@@ -52,14 +53,23 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
             return new ToolResultBlock
             {
                 ToolUseId = obj.GetProperty("tool_use_id").GetString() ?? string.Empty,
-                Content = contentEl.ValueKind == JsonValueKind.String ? contentEl.GetString() ?? string.Empty : contentEl.GetRawText(),
-                IsError = obj.TryGetProperty("is_error", out var isErrEl) && isErrEl.ValueKind is JsonValueKind.True or JsonValueKind.False
-                    ? isErrEl.GetBoolean()
-                    : null,
+                Content =
+                    contentEl.ValueKind == JsonValueKind.String
+                        ? contentEl.GetString() ?? string.Empty
+                        : contentEl.GetRawText(),
+                IsError =
+                    obj.TryGetProperty("is_error", out var isErrEl)
+                    && isErrEl.ValueKind is JsonValueKind.True or JsonValueKind.False
+                        ? isErrEl.GetBoolean()
+                        : null,
             };
         }
 
-        if (obj.TryGetProperty("id", out _) && obj.TryGetProperty("name", out _) && obj.TryGetProperty("input", out var inputEl))
+        if (
+            obj.TryGetProperty("id", out _)
+            && obj.TryGetProperty("name", out _)
+            && obj.TryGetProperty("input", out var inputEl)
+        )
         {
             // tool_use
             return new ToolUseBlock
@@ -74,7 +84,10 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
         {
             return new ThinkingBlock
             {
-                Thinking = thinkingEl.ValueKind == JsonValueKind.String ? thinkingEl.GetString() ?? string.Empty : thinkingEl.GetRawText(),
+                Thinking =
+                    thinkingEl.ValueKind == JsonValueKind.String
+                        ? thinkingEl.GetString() ?? string.Empty
+                        : thinkingEl.GetRawText(),
             };
         }
 
@@ -82,16 +95,25 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
         {
             return new TextBlock
             {
-                Text = textEl.ValueKind == JsonValueKind.String ? textEl.GetString() ?? string.Empty : textEl.GetRawText(),
+                Text =
+                    textEl.ValueKind == JsonValueKind.String
+                        ? textEl.GetString() ?? string.Empty
+                        : textEl.GetRawText(),
                 CacheControl = obj.TryGetProperty("cache_control", out var cc) ? cc.Clone() : null,
             };
         }
 
         // Unknown block shape.
-        throw new JsonException("Unable to infer ContentBlock type: missing 'type' discriminator and no known properties found.");
+        throw new JsonException(
+            "Unable to infer ContentBlock type: missing 'type' discriminator and no known properties found."
+        );
     }
 
-    public override void Write(Utf8JsonWriter writer, ContentBlock value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        ContentBlock value,
+        JsonSerializerOptions options
+    )
     {
         // When we write, we always include the 'type' discriminator for strict Anthropic compatibility.
         switch (value)
@@ -147,4 +169,3 @@ public sealed class ContentBlockConverter : JsonConverter<ContentBlock>
         JsonSerializer.Serialize(writer, (object)value, options);
     }
 }
-

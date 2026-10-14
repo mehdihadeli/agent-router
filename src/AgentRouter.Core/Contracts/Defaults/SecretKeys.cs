@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Defaults;
+namespace AgentRouter.Core.Contracts.Defaults;
 
 /// <summary>
 /// Canonical secret-store keys. Storage, the config splitter, and the panel must all agree on

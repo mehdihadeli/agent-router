@@ -1,13 +1,15 @@
-using AgentRouter.Contracts.Configuration;
-using AgentRouter.Storage;
-using AgentRouter.Storage.Configuration;
-using AgentRouter.Storage.Secrets;
-using AgentRouter.Storage.Sqlite;
+﻿using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Serialization;
+using AgentRouter.Core.Storage;
+using AgentRouter.Core.Storage.Configuration;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Storage.Sqlite;
+using AgentRouter.Core.Tests.Support.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class StorageRegistrationTests
 {
@@ -51,6 +53,66 @@ public class StorageRegistrationTests
         });
 
         Assert.True(Directory.Exists(target));
+    }
+
+    [Fact]
+    public void AddGatewayStorage_Uses_Json_Database_Path_Relative_To_Data_Directory()
+    {
+        using var workspace = new TempWorkspace();
+        var configured = Path.Combine(workspace.Root, "runtime", "gateway.db");
+        File.WriteAllText(
+            Path.Combine(workspace.Root, "config.json"),
+            System.Text.Json.JsonSerializer.Serialize(
+                new GatewayConfigDocument
+                {
+                    Storage = new StorageConfig
+                    {
+                        DatabasePath = Path.GetRelativePath(workspace.Root, configured),
+                    },
+                },
+                GatewayJson.Indented
+            )
+        );
+
+        var services = new ServiceCollection();
+        services.AddGatewayStorage(options =>
+        {
+            options.Directory = workspace.Root;
+            options.MasterKey = ValidHex;
+        });
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(
+            Path.GetFullPath(configured),
+            provider.GetRequiredService<SqliteConnectionFactory>().DatabasePath
+        );
+    }
+
+    [Fact]
+    public void Explicit_Database_Path_Overrides_Json_Database_Path()
+    {
+        using var workspace = new TempWorkspace();
+        File.WriteAllText(
+            Path.Combine(workspace.Root, "config.json"),
+            "{ \"Storage\": { \"DatabasePath\": \"json.db\" } }"
+        );
+        var explicitPath = Path.Combine(workspace.Root, "explicit.db");
+
+        var services = new ServiceCollection();
+        services.AddGatewayStorage(options =>
+        {
+            options.Directory = workspace.Root;
+            options.DatabasePath = explicitPath;
+            options.MasterKey = ValidHex;
+        });
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(
+            Path.GetFullPath(explicitPath),
+            provider.GetRequiredService<SqliteConnectionFactory>().DatabasePath
+        );
     }
 
     [Fact]

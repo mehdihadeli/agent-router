@@ -1,14 +1,16 @@
-using AgentRouter.Storage.Sqlite;
+using AgentRouter.Core.Storage.Sqlite;
+using AgentRouter.Core.Tests.Support.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class GatewayDatabaseTests
 {
     private static readonly string[] ExpectedTables =
     [
         "app_state",
+        "inference_summaries",
         "logs",
         "provider_stats",
         "request_bodies",
@@ -65,6 +67,43 @@ public class GatewayDatabaseTests
         var mode = (string)(await command.ExecuteScalarAsync())!;
 
         Assert.Equal("wal", mode, ignoreCase: true);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Initialize_MigratesVersionOneWithoutReplacingExistingConfiguration(
+        int initializers
+    )
+    {
+        using var harness = await StorageHarness.CreateAsync();
+        await using (var connection = await harness.ConnectionFactory.OpenAsync())
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                "DROP TABLE inference_summaries; PRAGMA user_version=1; INSERT INTO app_state (key, value, updated_at) VALUES ('migration-sentinel', 'preserve-me', '2026-10-14T00:00:00Z');";
+            await command.ExecuteNonQueryAsync();
+        }
+        var database = new GatewayDatabase(
+            harness.ConnectionFactory,
+            NullLogger<GatewayDatabase>.Instance
+        );
+        await Task.WhenAll(
+            Enumerable
+                .Range(0, initializers)
+                .Select(_ =>
+                    Task.Run(
+                        () => database.InitializeAsync(TestContext.Current.CancellationToken),
+                        TestContext.Current.CancellationToken
+                    )
+                )
+        );
+        Assert.Equal(DatabaseSchema.CurrentVersion, await ReadUserVersionAsync(harness));
+        Assert.Contains("inference_summaries", await ReadTableNamesAsync(harness));
+        await using var upgraded = await harness.ConnectionFactory.OpenAsync();
+        await using var query = upgraded.CreateCommand();
+        query.CommandText = "SELECT value FROM app_state WHERE key = 'migration-sentinel';";
+        Assert.Equal("preserve-me", await query.ExecuteScalarAsync());
     }
 
     [Fact]

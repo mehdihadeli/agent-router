@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Web search tool availability and network access policy.</summary>
 public sealed class WebToolsConfig

@@ -1,6 +1,6 @@
-using AgentRouter.Contracts.Defaults;
+using AgentRouter.Core.Contracts.Defaults;
 
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Network settings for the proxy and panel listeners.</summary>
 public sealed class ServerConfig

@@ -2,13 +2,13 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Microsoft.Extensions.Hosting;
+namespace AgentRouter.ServiceDefaults;
 
 // Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
 // This project should be referenced by each service project in your solution.
@@ -54,6 +54,7 @@ public static class Extensions
             {
                 metrics
                     .AddMeter("Experimental.Microsoft.Extensions.AI")
+                    .AddMeter("AgentRouter.Gateway")
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
@@ -63,6 +64,7 @@ public static class Extensions
                 tracing
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("Experimental.Microsoft.Extensions.AI")
+                    .AddSource("AgentRouter.Gateway")
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>

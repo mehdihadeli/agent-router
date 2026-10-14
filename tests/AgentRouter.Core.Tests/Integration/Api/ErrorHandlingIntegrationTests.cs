@@ -2,16 +2,16 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using AgentRouter;
 using AgentRouter.Cli;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Models.Anthropic;
+using AgentRouter.Core.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Integration.Api;
 
 public class ErrorHandlingIntegrationTests
 {
@@ -134,8 +134,9 @@ public class ErrorHandlingIntegrationTests
             SetEnvironmentVariable("RouteModel__SearchModel", "azure/gpt-4.1");
         }
 
-        protected override IHostBuilder CreateHostBuilder() => Host.CreateDefaultBuilder()
-            .ConfigureWebHostDefaults(builder => builder.UseTestServer());
+        protected override IHostBuilder CreateHostBuilder() =>
+            Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(builder => builder.UseTestServer());
 
         protected override IHost CreateHost(IHostBuilder builder)
         {

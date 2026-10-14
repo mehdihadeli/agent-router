@@ -1,12 +1,13 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text.Json;
 using AgentRouter.Cli;
+using AgentRouter.Core.Hosting;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Cli.Tests.Integration;
 
 public sealed class GatewayLifecycleTests : IAsyncLifetime
 {
@@ -23,9 +24,66 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Ui_NoOpenStartsManagementOnlyAndReusesVerifiedService()
+    {
+        var first = await RunAsync("ui", "--no-open", "--management-port", "0");
+        Assert.Equal(0, first.ExitCode);
+        var state = ReadState();
+        Assert.Null(state.GatewayUrl);
+        Assert.Contains($"Management UI: {state.Url}/ui/", first.Output, StringComparison.Ordinal);
+        Assert.Matches("Pairing code: [A-F0-9]{12}", first.Output);
+        var token = await RunAsync("config", "token", "--managed");
+        Assert.Equal(0, token.ExitCode);
+        Assert.DoesNotContain(token.Output.Trim(), first.Output, StringComparison.Ordinal);
+        var second = await RunAsync("ui", "--no-open", "--management-port", "0");
+        Assert.Equal(0, second.ExitCode);
+        Assert.Equal(state.Identity, ReadState().Identity);
+        Assert.Contains($"Management UI: {state.Url}/ui/", second.Output, StringComparison.Ordinal);
+        var status = await RunAsync("service", "status");
+        Assert.Contains("Inference: Stopped", status.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GroupedLifecycle_PreservesServiceAndInferenceBoundaries()
+    {
+        Assert.Equal(0, (await RunAsync("service", "start", "-n", "-p", "0")).ExitCode);
+        var state = ReadState();
+        Assert.Null(state.GatewayUrl);
+        var status = await RunAsync("service", "status");
+        Assert.Equal(0, status.ExitCode);
+        Assert.Contains("Management: Running", status.Output, StringComparison.Ordinal);
+        Assert.Contains("Inference: Stopped", status.Output, StringComparison.Ordinal);
+        Assert.Equal(0, (await RunAsync("service", "pause")).ExitCode);
+        Assert.Equal(state.Identity, ReadState().Identity);
+        Assert.Equal(0, (await RunAsync("service", "start", "-n", "-p", "0")).ExitCode);
+        Assert.Equal(state.Identity, ReadState().Identity);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
+        Assert.False(File.Exists(StatePath));
+        Assert.Equal(1, (await RunAsync("service", "status")).ExitCode);
+    }
+
+    [Fact]
+    public async Task Start_InferenceFailureKeepsManagementAvailableAndReusesIdentity()
+    {
+        var result = await RunAsync("service", "start", "--management-port", "0");
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Inference: Failed", result.Output, StringComparison.Ordinal);
+        var state = ReadState();
+        Assert.Null(state.GatewayUrl);
+        var status = await RunAsync("service", "status");
+        Assert.Equal(0, status.ExitCode);
+        Assert.Contains("Management: Running", status.Output, StringComparison.Ordinal);
+        Assert.Contains("Inference: Failed", status.Output, StringComparison.Ordinal);
+        Assert.Equal(1, (await RunAsync("service", "resume")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "start", "--management-port", "0")).ExitCode);
+        Assert.Equal(state.Identity, ReadState().Identity);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
+    }
+
+    [Fact]
     public async Task Start_ReusesIdentityAndStopRemovesStateWithoutSecrets()
     {
-        var first = await RunAsync("start", "--no-gateway", "--management-port", "0");
+        var first = await RunAsync("service", "start", "--no-gateway", "--management-port", "0");
         Assert.Equal(0, first.ExitCode);
         var state = ReadState();
         Assert.Null(state.GatewayUrl);
@@ -33,10 +91,10 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         Assert.NotEqual(0, new Uri(state.Url).Port);
         Assert.Equal(
             0,
-            (await RunAsync("start", "--no-gateway", "--management-port", "0")).ExitCode
+            (await RunAsync("service", "start", "--no-gateway", "--management-port", "0")).ExitCode
         );
         Assert.Equal(state, ReadState());
-        var status = await RunAsync("status", "--managed");
+        var status = await RunAsync("service", "status");
         Assert.Equal(0, status.ExitCode);
         Assert.Contains(state.Url, status.Output, StringComparison.Ordinal);
         using var client = new HttpClient();
@@ -47,18 +105,18 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
         var raw = await File.ReadAllTextAsync(StatePath, TestContext.Current.CancellationToken);
         Assert.DoesNotContain("Token", raw, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
         Assert.False(File.Exists(StatePath));
-        Assert.Equal(1, (await RunAsync("status", "--managed")).ExitCode);
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(1, (await RunAsync("service", "status")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
     }
 
     [Fact]
     public async Task Start_ConcurrentInvocationsReuseOneService()
     {
         var results = await Task.WhenAll(
-            RunAsync("start", "--no-gateway", "--management-port", "0"),
-            RunAsync("start", "--no-gateway", "--management-port", "0")
+            RunAsync("service", "start", "--no-gateway", "--management-port", "0"),
+            RunAsync("service", "start", "--no-gateway", "--management-port", "0")
         );
         Assert.All(results, result => Assert.Equal(0, result.ExitCode));
         var state = ReadState();
@@ -71,7 +129,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
                     StringComparison.Ordinal
                 )
         );
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
     }
 
     [Fact]
@@ -109,9 +167,62 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
                 )
             ).ExitCode
         );
-        Assert.Equal(0, (await RunAsync("start", "--management-port", "0")).ExitCode);
+        Assert.Equal(
+            0,
+            (await RunAsync("service", "start", "--no-gateway", "--management-port", "0")).ExitCode
+        );
+        var managementOnly = ReadState();
+        Assert.Contains(
+            "Inference: Stopped",
+            (await RunAsync("service", "status")).Output,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(0, (await RunAsync("service", "start", "--management-port", "0")).ExitCode);
         var state = ReadState();
-        Assert.NotNull(state.GatewayUrl);
+        Assert.Equal(managementOnly.Identity, state.Identity);
+        var liveStatus = await RunAsync("service", "status");
+        Assert.Contains($"http://127.0.0.1:{port}", liveStatus.Output, StringComparison.Ordinal);
+        var gatewayUrl = $"http://127.0.0.1:{port}";
+        Assert.Equal(0, liveStatus.ExitCode);
+        Assert.Contains("Inference: Running", liveStatus.Output, StringComparison.Ordinal);
+        Assert.Equal(0, (await RunAsync("service", "pause")).ExitCode);
+        var paused = await RunAsync("service", "status");
+        Assert.Equal(0, paused.ExitCode);
+        Assert.Contains("Management: Running", paused.Output, StringComparison.Ordinal);
+        Assert.Contains("Inference: Stopped", paused.Output, StringComparison.Ordinal);
+        Assert.Equal(state.Identity, ReadState().Identity);
+        Assert.Equal(0, (await RunAsync("service", "resume")).ExitCode);
+        Assert.Contains(
+            "Inference: Running",
+            (await RunAsync("service", "status")).Output,
+            StringComparison.Ordinal
+        );
+        int replacementPort;
+        using (var listener = new TcpListener(IPAddress.Loopback, 0))
+        {
+            listener.Start();
+            replacementPort = ((IPEndPoint)listener.LocalEndpoint).Port;
+        }
+        Assert.Equal(
+            0,
+            (
+                await RunAsync(
+                    "init",
+                    "--port",
+                    replacementPort.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                )
+            ).ExitCode
+        );
+        var oldGatewayUrl = gatewayUrl;
+        gatewayUrl = $"http://127.0.0.1:{replacementPort}";
+        var reload = await RunAsync("service", "reload");
+        Assert.Equal(0, reload.ExitCode);
+        Assert.Contains($"Gateway: {gatewayUrl}", reload.Output, StringComparison.Ordinal);
+        var reloadedStatus = await RunAsync("service", "status");
+        Assert.Equal(0, reloadedStatus.ExitCode);
+        Assert.Contains("Inference: Running", reloadedStatus.Output, StringComparison.Ordinal);
+        Assert.Contains($"Gateway: {gatewayUrl}", reloadedStatus.Output, StringComparison.Ordinal);
+        Assert.Equal(state.Identity, ReadState().Identity);
         var inferenceToken = await RunAsync("config", "token");
         var managementToken = await RunAsync("config", "token", "--managed");
         Assert.Equal(0, inferenceToken.ExitCode);
@@ -122,8 +233,14 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
             "Bearer",
             inferenceToken.Output.Trim()
         );
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.GetAsync(
+                new Uri(new Uri(oldGatewayUrl), "/v1/models"),
+                TestContext.Current.CancellationToken
+            )
+        );
         using var models = await client.GetAsync(
-            new Uri(new Uri(state.GatewayUrl), "/v1/models"),
+            new Uri(new Uri(gatewayUrl), "/v1/models"),
             TestContext.Current.CancellationToken
         );
         Assert.Equal(HttpStatusCode.OK, models.StatusCode);
@@ -147,11 +264,11 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         );
         Assert.Equal(HttpStatusCode.OK, management.StatusCode);
         using var deniedInference = await client.GetAsync(
-            new Uri(new Uri(state.GatewayUrl), "/v1/models"),
+            new Uri(new Uri(gatewayUrl), "/v1/models"),
             TestContext.Current.CancellationToken
         );
         Assert.Equal(HttpStatusCode.Unauthorized, deniedInference.StatusCode);
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
         Assert.False(File.Exists(StatePath));
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             client.GetAsync(
@@ -161,7 +278,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         );
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             client.GetAsync(
-                new Uri(new Uri(state.GatewayUrl), "/v1/models"),
+                new Uri(new Uri(gatewayUrl), "/v1/models"),
                 TestContext.Current.CancellationToken
             )
         );
@@ -174,6 +291,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         var result = await RunAsync(
+            "service",
             "start",
             "--no-gateway",
             "--management-port",
@@ -184,9 +302,9 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         Assert.False(File.Exists(StatePath));
         Assert.Equal(
             0,
-            (await RunAsync("start", "--no-gateway", "--management-port", "0")).ExitCode
+            (await RunAsync("service", "start", "--no-gateway", "--management-port", "0")).ExitCode
         );
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
     }
 
     [Fact]
@@ -208,7 +326,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
             JsonSerializer.Serialize(forged),
             TestContext.Current.CancellationToken
         );
-        var result = await RunAsync("stop");
+        var result = await RunAsync("service", "stop");
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Refusing", result.Output, StringComparison.Ordinal);
         Assert.False(current.HasExited);
@@ -237,18 +355,18 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         );
         Assert.Equal(
             0,
-            (await RunAsync("start", "--no-gateway", "--management-port", "0")).ExitCode
+            (await RunAsync("service", "start", "--no-gateway", "--management-port", "0")).ExitCode
         );
         Assert.NotEqual(stale.Identity.InstanceId, ReadState().Identity.InstanceId);
         Assert.False(current.HasExited);
-        Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+        Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
     }
 
     [Fact]
     public async Task Web_ForegroundOwnsServiceAndAuthenticatedStopExitsOwner()
     {
         using var process = Process.Start(
-            CreateStartInfo(["web", "--no-gateway", "--management-port", "0"])
+            CreateStartInfo(["service", "serve", "--no-gateway", "--management-port", "0"])
         )!;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
             TestContext.Current.CancellationToken
@@ -264,8 +382,8 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
                     break;
             }
             Assert.Equal(process.Id, ReadState().Identity.ProcessId);
-            Assert.Equal(0, (await RunAsync("status", "--managed")).ExitCode);
-            Assert.Equal(0, (await RunAsync("stop")).ExitCode);
+            Assert.Equal(0, (await RunAsync("service", "status")).ExitCode);
+            Assert.Equal(0, (await RunAsync("service", "stop")).ExitCode);
             await process.WaitForExitAsync(deadline.Token);
             Assert.Equal(0, process.ExitCode);
             Assert.False(File.Exists(StatePath));
@@ -284,7 +402,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
     public async Task Start_InvalidStateIsNotOverwritten()
     {
         await File.WriteAllTextAsync(StatePath, "not-json", TestContext.Current.CancellationToken);
-        var result = await RunAsync("start", "--no-gateway", "--management-port", "0");
+        var result = await RunAsync("service", "start", "--no-gateway", "--management-port", "0");
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("malformed", result.Output, StringComparison.Ordinal);
         Assert.Equal(
@@ -309,7 +427,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
         start.ArgumentList.Add(typeof(GatewayHost).Assembly.Location);
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
-        start.Environment["CC_GATEWAY_CONFIG_DIR"] = _directory;
+        start.Environment["AR_CONFIG_DIR"] = _directory;
         start.Environment["LIFECYCLE_PROVIDER_KEY"] = "lifecycle-test-upstream-secret";
         return start;
     }
@@ -337,7 +455,7 @@ public sealed class GatewayLifecycleTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        await RunAsync("stop");
+        await RunAsync("service", "stop");
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         Directory.Delete(_directory, recursive: true);
     }

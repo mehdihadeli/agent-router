@@ -1,6 +1,6 @@
-namespace AgentRouter.Contracts.Configuration;
-
 using System.Text.Json.Serialization;
+
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Tier-based routing overrides for Claude Code model selection.</summary>
 public sealed class RoutingConfig

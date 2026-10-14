@@ -1,4 +1,4 @@
-namespace AgentRouter.Shared.Constants;
+namespace AgentRouter.Core.Constants;
 
 public class RouteModelKeys
 {

@@ -1,4 +1,4 @@
-namespace AgentRouter.Storage.Secrets;
+namespace AgentRouter.Core.Storage.Secrets;
 
 /// <summary>
 /// Encrypted key/value storage for API keys, OAuth tokens, and the gateway auth token.

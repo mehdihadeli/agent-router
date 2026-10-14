@@ -1,6 +1,6 @@
-namespace AgentRouter.Contracts.Configuration;
-
 using System.Text.Json.Serialization;
+
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Configuration for a single provider, built-in or user-created.</summary>
 public sealed class ProviderConfig

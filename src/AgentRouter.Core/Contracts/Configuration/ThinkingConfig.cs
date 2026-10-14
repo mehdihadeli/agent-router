@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>
 /// Extended-thinking controls. A <see langword="null"/> tier value means "let the provider

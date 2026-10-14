@@ -1,62 +1,93 @@
-using AgentRouter.Models.Anthropic;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Constants;
-using AgentRouter.Shared.Routes;
-using AgentRouter.Validation;
+﻿using AgentRouter.Core.Api.ErrorHandling.Exceptions;
+using AgentRouter.Core.Api.Models.Anthropic;
+using AgentRouter.Core.Api.Validation;
+using AgentRouter.Core.Constants;
+using AgentRouter.Core.Hosting;
+using AgentRouter.Core.Routes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 
-namespace AgentRouter.Features.CreatingMessage;
+namespace AgentRouter.Core.Api.Features.CreatingMessage;
 
 public static class CreateMessageEndpoint
 {
     public static IEndpointRouteBuilder MapCreatingMessage(this IEndpointRouteBuilder builder)
     {
-        builder.MapPost(
-            "/v1/messages",
-            async (
-                AnthropicRequest anthropicRequest,
-                HttpContext httpContext,
-                IServiceProvider sp,
-                IOptions<ClaudeGatewayOptions> gatewayOptions,
-                CancellationToken ct
-            ) =>
-            {
-                AnthropicRequestValidator.ThrowIfInvalid(anthropicRequest);
-
-                var selectedModel = RouteModelFactory.ResolveRequestModel(
-                    gatewayOptions.Value,
-                    anthropicRequest.Model
-                );
-                var chatClient = ResolveChatClient(
-                    sp,
-                    gatewayOptions.Value,
-                    $"{selectedModel.Name}/{selectedModel.Model}"
-                );
-
-                // The provider must receive the bare model name (e.g. "deepseek-flash"),
-                // not the gateway route ("openai/deepseek-flash").
-                var modelId = selectedModel.Model;
-
-                if (anthropicRequest.Stream is true)
+        builder
+            .MapPost(
+                "/v1/messages",
+                async (
+                    HttpContext httpContext,
+                    IServiceProvider sp,
+                    IOptions<ClaudeGatewayOptions> gatewayOptions,
+                    CancellationToken ct
+                ) =>
                 {
-                    return await AnthropicStreamingRequestHandler.HandleAsync(
-                        chatClient,
-                        anthropicRequest,
-                        modelId,
-                        httpContext,
-                        ct
+                    using var execution = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    execution.CancelAfter(
+                        TimeSpan.FromSeconds(gatewayOptions.Value.RequestTimeoutSeconds)
                     );
-                }
+                    try
+                    {
+                        if (!httpContext.Request.HasJsonContentType())
+                            throw new BadHttpRequestException(
+                                "Content-Type must be application/json.",
+                                StatusCodes.Status415UnsupportedMediaType
+                            );
+                        var anthropicRequest =
+                            await httpContext.Request.ReadFromJsonAsync<AnthropicRequest>(
+                                execution.Token
+                            ) ?? throw new BadRequestException("Request body is required.");
+                        AnthropicRequestValidator.ThrowIfInvalid(anthropicRequest);
 
-                return await AnthropicNonStreamingRequestHandler.HandleAsync(
-                    chatClient,
-                    anthropicRequest,
-                    modelId,
-                    ct
-                );
-            }
-        );
+                        var selectedModel = RouteModelFactory.ResolveRequestModel(
+                            gatewayOptions.Value,
+                            anthropicRequest.Model
+                        );
+                        var chatClient = new GatewayInferenceClient(
+                            sp,
+                            gatewayOptions.Value,
+                            httpContext,
+                            anthropicRequest.Model
+                        );
+
+                        // The provider must receive the bare model name (e.g. "deepseek-flash"),
+                        // not the gateway route ("openai/deepseek-flash").
+                        var modelId = selectedModel.Model;
+
+                        if (anthropicRequest.Stream is true)
+                        {
+                            return await AnthropicStreamingRequestHandler.HandleAsync(
+                                chatClient,
+                                anthropicRequest,
+                                modelId,
+                                httpContext,
+                                execution.Token
+                            );
+                        }
+
+                        var result = await AnthropicNonStreamingRequestHandler.HandleAsync(
+                            chatClient,
+                            anthropicRequest,
+                            modelId,
+                            execution.Token
+                        );
+                        await result.ExecuteAsync(httpContext);
+                        return Results.Empty;
+                    }
+                    catch (OperationCanceledException)
+                        when (execution.IsCancellationRequested && !ct.IsCancellationRequested)
+                    {
+                        if (httpContext.Response.HasStarted)
+                        {
+                            httpContext.Abort();
+                            return Results.Empty;
+                        }
+                        throw new TimeoutException("Inference request deadline exceeded.");
+                    }
+                }
+            )
+            .Accepts<AnthropicRequest>("application/json", "application/*+json");
 
         return builder;
     }
@@ -65,7 +96,7 @@ public static class CreateMessageEndpoint
     /// Resolves the keyed <see cref="IChatClient"/> for the given model string.
     /// Falls back to the "default" key, then to an unkeyed registration.
     /// </summary>
-    private static IChatClient ResolveChatClient(
+    internal static IChatClient ResolveChatClient(
         IServiceProvider sp,
         ClaudeGatewayOptions gatewayOptions,
         string model

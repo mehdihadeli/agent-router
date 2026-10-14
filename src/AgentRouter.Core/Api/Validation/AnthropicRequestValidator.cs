@@ -1,8 +1,8 @@
-using AgentRouter.ErrorHandling;
-using AgentRouter.ErrorHandling.Exceptions;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.ErrorHandling;
+using AgentRouter.Core.Api.ErrorHandling.Exceptions;
+using AgentRouter.Core.Api.Models.Anthropic;
 
-namespace AgentRouter.Validation;
+namespace AgentRouter.Core.Api.Validation;
 
 /// <summary>
 /// Validates an incoming Anthropic Messages API request before processing.

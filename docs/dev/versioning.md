@@ -18,11 +18,11 @@ The release contract is:
 SemVer, assembly metadata, and commit height from that file and Git history.
 The NBGV CLI version used by the workflow is pinned to `3.10.94`.
 
-Current preview configuration:
+Current preview configuration (version-related excerpt):
 
 ```json
 {
-  "version": "10.0.0-preview.{height}",
+  "version": "1.0.0-preview.{height}",
   "publicReleaseRefSpec": [
     "^refs/heads/main$",
     "^refs/tags/v\\d+\\.\\d+\\.\\d+(?:-rc\\.\\d+)?$"
@@ -44,22 +44,45 @@ suffix identifies the source commit and is not part of a public release tag.
 
 The workflow uses these effective package versions:
 
-| Source ref | Effective version | Environment | Publication |
+| Source ref | Effective package version | Release intent | Publication |
 | --- | --- | --- | --- |
-| `main`, preview height `0` | `10.0.0-preview.0` | none | Validation only |
-| `main`, preview height `1+` | `10.0.0-preview.N.YYDDD.RUN_NUMBER` | dev | NuGet package |
-| `v10.0.0-rc.1` | `10.0.0-rc.1.YYDDD.RUN_NUMBER` | staging | NuGet package |
-| `v10.0.0` | `10.0.0` | production | NuGet package |
+| `main`, preview height `0` | `1.0.0-preview.0` | none | Validation only |
+| `main`, preview height `1+` | `1.0.0-preview.N.YYDDD.RUN_NUMBER` | dev | NuGet package and release assets |
+| `v1.0.0-rc.1` | `1.0.0-rc.1.YYDDD.RUN_NUMBER` | staging | NuGet package and release assets |
+| `v1.0.0` | `1.0.0` | production | NuGet package and release assets |
 
 `YYDDD` is the UTC two-digit year and day of year. `RUN_NUMBER` is the
 monotonically increasing GitHub Actions workflow run number. The date and run
 number distinguish separately built preview or RC packages; they do not replace
 the NBGV preview or RC ordinal.
 
-The workflow publishes the `AgentRouter` CLI package to NuGet.org. It
-does not currently publish self-contained archives, container images, or deploy
-to an environment. The environment names describe release intent and CI
-permissions.
+For example, preview ordinal `7`, built on October 14, 2026 (UTC day `287`),
+with workflow run number `42` produces `1.0.0-preview.7.26287.42`.
+The matching RC tag `v1.0.0-rc.1` produces package version
+`1.0.0-rc.1.26287.42`; stable tag `v1.0.0` produces `1.0.0`.
+Any calculated `.g<commit>` suffix is excluded from published preview and RC
+package versions. At preview height `0`, the script leaves the calculated NBGV
+version unchanged, including any such suffix, and skips publication.
+
+The workflow publishes the `AgentRouter` CLI package to NuGet.org and uploads
+the package and self-contained, single-file executable archives to the matching
+GitHub release:
+
+- `agent-router-linux-x64.tar.gz`, containing `ar`.
+- `agent-router-osx-x64.tar.gz`, containing `ar`.
+- `agent-router-osx-arm64.tar.gz`, containing `ar`.
+- `agent-router-win-x64.zip`, containing `ar.exe`.
+
+It does not publish container images or deploy the application. The calculated
+`dev`, `staging`, and `production` labels describe release intent; the publish
+job uses the GitHub environment `nuget` for all published versions.
+
+The pack step overrides `PackageVersion` with the effective version above.
+The script also outputs `assembly_version`, `informational_version`
+(`EFFECTIVE_VERSION+COMMIT`), `docker_tag`, and `commit`, but the workflow does
+not pass those metadata outputs to pack or executable publish. Executable
+metadata therefore follows the project's NBGV build configuration, not an
+explicit override with the date/run package version.
 
 ## Preview releases
 
@@ -74,14 +97,15 @@ accepted changes publish the next preview number.
 Start a new preview train with a reviewed version-intent change:
 
 ```bash
-./release-version.sh prepare-train 10.1.0
+./scripts/release-version.sh prepare-train 1.1.0
 git add version.json
-git commit -m "chore: start 10.1.0 preview train"
+git commit -m "chore: start 1.1.0 preview train"
 git push
 ```
 
-The helper changes the version to `10.1.0-preview.{height}`. It does not
-commit, push, or publish.
+The helper changes the version to `1.1.0-preview.{height}`. It does not
+commit, push, or publish. The release helper requires `dotnet nbgv`; install
+the pinned NBGV CLI as a local tool if it is not already available.
 
 ## RC and stable releases
 
@@ -92,41 +116,43 @@ validation succeeds.
 Prepare the first RC train:
 
 ```bash
-./release-version.sh prepare-rc 10.0.0
+./scripts/release-version.sh prepare-rc 1.0.0
 git add version.json
-git commit -m "chore: prepare 10.0.0 RC train"
-git push -u origin chore/prepare-10.0.0-rc
+git commit -m "chore: prepare 1.0.0 RC train"
+git push -u origin chore/prepare-1.0.0-rc
 ```
 
 After the pull request is merged and local `main` is updated, create and push
 the tag:
 
 ```bash
-./release-version.sh tag
-git push origin v10.0.0-rc.1
+./scripts/release-version.sh tag
+git push origin v1.0.0-rc.1
 ```
 
 Later RC fixes do not edit `version.json`; another merge advances the
-`10.0.0-rc.{height}` template to the next RC ordinal.
+`1.0.0-rc.{height}` template to the next RC ordinal. Use the tag reported by
+NBGV rather than assuming an ordinal; CI validates it before adding the
+date/run suffix to the package version.
 
 Prepare stable in the same way:
 
 ```bash
-./release-version.sh prepare-stable 10.0.0
+./scripts/release-version.sh prepare-stable 1.0.0
 git add version.json
-git commit -m "chore: prepare 10.0.0"
-git push -u origin chore/prepare-10.0.0
+git commit -m "chore: prepare 1.0.0"
+git push -u origin chore/prepare-1.0.0
 ```
 
 After that change is merged and validated:
 
 ```bash
-./release-version.sh tag
-git push origin v10.0.0
+./scripts/release-version.sh tag
+git push origin v1.0.0
 ```
 
 The stable tag must point to the merged stable-preparation commit, and CI
-publishes clean `10.0.0` package metadata. The release helper never commits or
+publishes clean `1.0.0` package versions. The release helper never commits or
 pushes on your behalf.
 
 ## CI behavior
@@ -146,15 +172,22 @@ Every version-calculating job checks out full history:
 The workflow uses these stages:
 
 1. `build-test` restores, builds, and tests the solution.
-2. `calculate-version` runs [`calculate-version.sh`](../../calculate-version.sh),
-   validates release tags, and selects the effective version and environment.
-3. `publish` packs `AgentRouter`, pushes it to NuGet.org, and updates or
-   publishes the matching Release Drafter release.
+2. `calculate-version` runs [`calculate-version.sh`](../../scripts/calculate-version.sh),
+  validates release tags, and selects the effective package version and release
+  intent label.
+3. `publish` packs `AgentRouter`, pushes it to NuGet.org, builds executable
+  archives, updates or publishes the matching Release Drafter release, and
+  uploads the package and archives as release assets.
+
+Preview releases remain drafts with a tag/name based on the effective package
+version. RC and stable releases are published under the triggering source tag;
+the RC release name includes the date/run suffix even though its tag does not.
 
 For a syntactically valid release tag, CI removes the `v` prefix and compares
 the tag with NBGV's calculated version after removing only `.g<commit>`. A
-mismatch fails the workflow, so a tag such as `v10.0.0-rc.3` cannot publish a
-commit that calculates as `10.0.0-rc.2`.
+mismatch fails the workflow, so a tag such as `v1.0.0-rc.3` cannot publish a
+commit that calculates as `1.0.0-rc.2`. Other `v*` tag formats are rejected by
+the calculation script.
 
 Release Drafter runs with `if: always()` so release notes remain up to date when
 an earlier package publication step fails. The job still fails and the package
@@ -165,8 +198,8 @@ must be fixed and rerun.
 Before pushing a release tag, run:
 
 ```bash
-bash -n calculate-version.sh
-bash -n release-version.sh
+bash -n scripts/calculate-version.sh
+bash -n scripts/release-version.sh
 dotnet test --solution agent-router.slnx --configuration Release
 dotnet pack src/AgentRouter.Cli/AgentRouter.Cli.csproj --configuration Release --output artifacts
 ```

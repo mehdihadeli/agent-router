@@ -1,0 +1,34 @@
+{
+  "name": "agent-router-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate:api": "node scripts/export-openapi.mjs && openapi-typescript src/generated/management.openapi.json -o src/generated/management.ts",
+    "build": "ng build",
+    "check": "ng build --configuration development",
+    "preview": "node scripts/preview.mjs"
+  },
+  "dependencies": {
+    "@angular/common": "^21.2.25",
+    "@angular/compiler": "^21.2.25",
+    "@angular/core": "^21.2.25",
+    "@angular/forms": "^21.2.25",
+    "@angular/platform-browser": "^21.2.25",
+    "@fontsource/manrope": "^5.2.0",
+    "lucide-angular": "^1.0.0",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.0",
+    "@angular/cli": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.25",
+    "@tailwindcss/postcss": "^4.3.3",
+    "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.10.1",
+    "postcss": "^8.5.30",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

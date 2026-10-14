@@ -1,7 +1,7 @@
-using AgentRouter.Shared.Configuration;
+using AgentRouter.Core.Hosting;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Hosting;
 
 public class ClaudeSettingsConfigurationProviderTests
 {

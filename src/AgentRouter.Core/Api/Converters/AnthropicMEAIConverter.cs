@@ -1,8 +1,8 @@
 using System.Text.Json;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Models.Anthropic;
 using Microsoft.Extensions.AI;
 
-namespace AgentRouter.Converters;
+namespace AgentRouter.Core.Api.Converters;
 
 /// <summary>
 /// Convenience facade for <see cref="AnthropicToMEAIConverter"/>.
@@ -10,8 +10,8 @@ namespace AgentRouter.Converters;
 public static class AnthropicMEAIConverter
 {
     public static (List<ChatMessage> Messages, ChatOptions Options) ToMEAIChatCompletionRequest(
-        AnthropicRequest request) =>
-        AnthropicToMEAIConverter.ToMEAIChatCompletionRequest(request);
+        AnthropicRequest request
+    ) => AnthropicToMEAIConverter.ToMEAIChatCompletionRequest(request);
 
     public static AnthropicResponse ToAnthropicResponse(ChatResponse? chatResponse, string model) =>
         AnthropicToMEAIConverter.ToAnthropicResponse(chatResponse, model);

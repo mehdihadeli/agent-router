@@ -313,6 +313,8 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+src/AgentRouter.Web/.angular/
+src/AgentRouter.Web/dist/
 
 # Visual Studio 6 build log
 *.plg
@@ -513,3 +515,8 @@ http-client.private.env.json
 
 # Github Copilot persisted session migrations, see: https://github.com/microsoft/copilot-intellij-feedback/issues/712#issuecomment-3322062215
 .idea/**/copilot.data.migration.*.xml
+
+CLAUDE.md
+.testagent
+**/feature-parity.md
+.idea

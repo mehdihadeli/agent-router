@@ -1,4 +1,4 @@
-using Spectre.Console;
+﻿using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace AgentRouter.Cli;
@@ -12,6 +12,9 @@ public sealed class ServeCommand(GatewayHost gatewayHost) : AsyncCommand<ServeCo
 
         [CommandOption("-p|--port <PORT>")]
         public int? Port { get; init; }
+
+        [CommandOption("--settings-file <PATH>")]
+        public string? SettingsFile { get; init; }
 
         public override ValidationResult Validate()
         {
@@ -55,6 +58,6 @@ public sealed class ServeCommand(GatewayHost gatewayHost) : AsyncCommand<ServeCo
                 .Border(BoxBorder.Rounded)
         );
 
-        return await gatewayHost.RunAsync(listenUrl, cancellationToken);
+        return await gatewayHost.RunAsync(listenUrl, settings.SettingsFile, cancellationToken);
     }
 }

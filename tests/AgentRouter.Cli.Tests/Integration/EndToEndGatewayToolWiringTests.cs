@@ -1,10 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using AgentRouter;
 using AgentRouter.Cli;
-using AgentRouter.Models.Anthropic;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Routes;
+using AgentRouter.Core;
+using AgentRouter.Core.Api.Models.Anthropic;
+using AgentRouter.Core.Hosting;
+using AgentRouter.Core.Routes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Cli.Tests.Integration;
 
 /// <summary>
 /// End-to-end integration tests that host the real gateway via <see cref="WebApplicationFactory{TEntryPoint}"/>
@@ -555,8 +555,9 @@ public class EndToEndGatewayToolWiringTests
 
     private sealed class GatewayFactory : WebApplicationFactory<GatewayHost>
     {
-        protected override IHostBuilder CreateHostBuilder() => Host.CreateDefaultBuilder()
-            .ConfigureWebHostDefaults(builder => builder.UseTestServer());
+        protected override IHostBuilder CreateHostBuilder() =>
+            Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(builder => builder.UseTestServer());
 
         protected override IHost CreateHost(IHostBuilder builder)
         {

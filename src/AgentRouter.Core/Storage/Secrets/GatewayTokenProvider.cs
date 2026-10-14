@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
-using AgentRouter.Contracts.Defaults;
+using AgentRouter.Core.Contracts.Defaults;
 
-namespace AgentRouter.Storage.Secrets;
+namespace AgentRouter.Core.Storage.Secrets;
 
 /// <summary>Provides and rotates the gateway auth token used to authenticate local requests.</summary>
 public interface IGatewayTokenProvider

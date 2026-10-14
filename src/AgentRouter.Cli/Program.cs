@@ -1,9 +1,9 @@
+﻿using AgentRouter;
 using AgentRouter.Cli;
+using AgentRouter.Core.Hosting;
+using AgentRouter.Core.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using AgentRouter;
-using AgentRouter.Storage;
-using AgentRouter.Shared.Configuration;
 
 var managedChild = args is ["--managed-child"];
 var builder = Host.CreateApplicationBuilder(managedChild ? [] : args);
@@ -15,6 +15,8 @@ builder.Services.AddSingleton<GatewayServiceController>();
 
 using var host = builder.Build();
 if (managedChild)
-	return await host.Services.GetRequiredService<GatewayServiceController>().RunChildAsync(CancellationToken.None);
+    return await host
+        .Services.GetRequiredService<GatewayServiceController>()
+        .RunChildAsync(CancellationToken.None);
 var app = CliCommandAppFactory.Create(host.Services);
 return await app.RunAsync(args);

@@ -1,10 +1,10 @@
 using System.Text.Json;
-using AgentRouter.ErrorHandling.Exceptions;
-using AgentRouter.Models.Anthropic;
-using AgentRouter.Validation;
+using AgentRouter.Core.Api.ErrorHandling.Exceptions;
+using AgentRouter.Core.Api.Models.Anthropic;
+using AgentRouter.Core.Api.Validation;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Api;
 
 public class AnthropicRequestValidatorTests
 {

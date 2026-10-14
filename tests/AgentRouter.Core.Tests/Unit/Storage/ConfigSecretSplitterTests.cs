@@ -1,10 +1,11 @@
-using AgentRouter.Contracts.Configuration;
-using AgentRouter.Contracts.Defaults;
-using AgentRouter.Storage.Configuration;
-using AgentRouter.Storage.Secrets;
+using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Defaults;
+using AgentRouter.Core.Storage.Configuration;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Tests.Support.Storage;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class ConfigSecretSplitterTests
 {

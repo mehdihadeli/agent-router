@@ -1,12 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using AgentRouter.Core.Contracts.Configuration;
 
-namespace AgentRouter.Contracts.Serialization;
+namespace AgentRouter.Core.Contracts.Serialization;
 
 /// <summary>
-/// Single source of JSON conventions for every gateway surface (config document, storage
-/// payloads, panel API). Keeping this in one place prevents drift between the proxy and the
-/// panel, which is a documented weakness of the reference implementation.
+/// Shared JSON conventions for AgentRouter configuration, storage, and management output.
 /// </summary>
 public static class GatewayJson
 {
@@ -20,7 +19,7 @@ public static class GatewayJson
     {
         var options = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNamingPolicy = null,
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             WriteIndented = indented,
@@ -28,8 +27,48 @@ public static class GatewayJson
             AllowTrailingCommas = true,
         };
 
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new LegacyEnumConverter<ProviderAuthType>());
+        options.Converters.Add(new LegacyEnumConverter<RoutingStrategy>());
+        options.Converters.Add(new JsonStringEnumConverter());
 
         return options;
+    }
+
+    private sealed class LegacyEnumConverter<TEnum> : JsonConverter<TEnum>
+        where TEnum : struct, Enum
+    {
+        public override TEnum Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options
+        )
+        {
+            if (reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number))
+                return (TEnum)Enum.ToObject(typeof(TEnum), number);
+            if (
+                reader.TokenType == JsonTokenType.String
+                && Enum.TryParse<TEnum>(
+                    reader.GetString()?.Replace("_", "", StringComparison.Ordinal),
+                    true,
+                    out var value
+                )
+            )
+                return value;
+            throw new JsonException("Invalid configuration enum value.");
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            TEnum value,
+            JsonSerializerOptions options
+        )
+        {
+            if (Enum.GetName(value) is { } name)
+                writer.WriteStringValue(name);
+            else
+                writer.WriteNumberValue(
+                    Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture)
+                );
+        }
     }
 }

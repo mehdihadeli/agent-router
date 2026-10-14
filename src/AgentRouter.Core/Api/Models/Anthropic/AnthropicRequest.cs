@@ -1,7 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Models.Anthropic;
+namespace AgentRouter.Core.Api.Models.Anthropic;
 
 // =========================
 // Request
@@ -207,8 +207,10 @@ public class AnthropicResponse
 
     public required string Model { get; set; }
 
+    [JsonPropertyName("stop_reason")]
     public string? StopReason { get; set; }
 
+    [JsonPropertyName("stop_sequence")]
     public string? StopSequence { get; set; }
 
     public required Usage Usage { get; set; }
@@ -240,8 +242,10 @@ public class ResponseThinking : ResponseContent
 public class Usage
 {
     [JsonPropertyName("input_tokens")]
-    public uint InputTokens { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? InputTokens { get; set; }
 
     [JsonPropertyName("output_tokens")]
-    public uint OutputTokens { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? OutputTokens { get; set; }
 }

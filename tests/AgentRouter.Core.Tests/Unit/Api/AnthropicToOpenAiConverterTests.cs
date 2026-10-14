@@ -1,10 +1,10 @@
 using System.Text.Json;
-using AgentRouter.Converters;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Converters;
+using AgentRouter.Core.Api.Models.Anthropic;
 using Microsoft.Extensions.AI;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Api;
 
 public class AnthropicToMEAIConverterTests
 {
@@ -59,7 +59,7 @@ public class AnthropicToMEAIConverterTests
             MaxTokens = 32,
             Tools =
             [
-                new Models.Anthropic.Tool
+                new Tool
                 {
                     Name = "get_weather",
                     Description = "Get weather",
@@ -287,7 +287,7 @@ public class AnthropicToMEAIConverterTests
             MaxTokens = 32,
             Tools =
             [
-                new Models.Anthropic.Tool
+                new Tool
                 {
                     Name = "t1",
                     Description = "tool",
@@ -375,8 +375,8 @@ public class AnthropicToMEAIConverterTests
 
         Assert.Equal("end_turn", anthropic.StopReason);
         Assert.Empty(anthropic.Content);
-        Assert.Equal((uint)0, anthropic.Usage.InputTokens);
-        Assert.Equal((uint)0, anthropic.Usage.OutputTokens);
+        Assert.Null(anthropic.Usage.InputTokens);
+        Assert.Null(anthropic.Usage.OutputTokens);
     }
 
     // ═════════════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
-using AgentRouter.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Configuration;
 
-namespace AgentRouter.Storage.Configuration;
+namespace AgentRouter.Core.Storage.Configuration;
 
 /// <summary>
 /// Reads and writes the gateway configuration document. The document is stored without secrets;

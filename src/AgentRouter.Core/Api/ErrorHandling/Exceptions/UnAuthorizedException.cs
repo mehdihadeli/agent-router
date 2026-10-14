@@ -1,4 +1,4 @@
-namespace AgentRouter.ErrorHandling.Exceptions;
+namespace AgentRouter.Core.Api.ErrorHandling.Exceptions;
 
 public class UnAuthorizedException(string message, Exception? innerException = null)
     : CustomException(message, StatusCodes.Status401Unauthorized, innerException);

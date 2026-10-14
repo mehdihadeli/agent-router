@@ -1,4 +1,4 @@
-namespace AgentRouter.Storage.Sqlite;
+﻿namespace AgentRouter.Core.Storage.Sqlite;
 
 /// <summary>
 /// Ordered schema migrations. The applied version is tracked in SQLite's <c>user_version</c>
@@ -6,10 +6,20 @@ namespace AgentRouter.Storage.Sqlite;
 /// </summary>
 internal static class DatabaseSchema
 {
-    internal const int CurrentVersion = 1;
+    internal const int CurrentVersion = 2;
 
     /// <summary>Migration scripts ordered by target version, starting at version 1.</summary>
-    internal static IReadOnlyList<string> Migrations { get; } = new[] { Version1 };
+    internal static IReadOnlyList<string> Migrations { get; } = new[] { Version1, Version2 };
+
+    private const string Version2 = """
+        CREATE TABLE inference_summaries (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT NOT NULL UNIQUE,
+            ts TEXT NOT NULL,
+            data TEXT NOT NULL
+        );
+        CREATE INDEX ix_inference_summaries_ts ON inference_summaries (ts DESC);
+        """;
 
     private const string Version1 = """
         CREATE TABLE IF NOT EXISTS app_state (

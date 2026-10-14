@@ -1,7 +1,6 @@
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 public sealed class ClaudeSettingsConfigurationProvider : ConfigurationProvider
 {

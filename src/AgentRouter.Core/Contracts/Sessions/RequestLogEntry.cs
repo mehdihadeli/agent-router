@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Contracts.Sessions;
+namespace AgentRouter.Core.Contracts.Sessions;
 
 /// <summary>
 /// A single proxied request. Rows are append-only and power Live Sessions and History.

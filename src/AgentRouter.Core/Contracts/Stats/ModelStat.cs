@@ -1,6 +1,6 @@
-namespace AgentRouter.Contracts.Stats;
-
 using System.Text.Json.Serialization;
+
+namespace AgentRouter.Core.Contracts.Stats;
 
 /// <summary>Per-model counters scoped to a session.</summary>
 public sealed class ModelStat

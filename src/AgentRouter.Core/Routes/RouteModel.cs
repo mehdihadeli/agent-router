@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AgentRouter.Shared.Routes;
+namespace AgentRouter.Core.Routes;
 
 public class RouteModel
 {

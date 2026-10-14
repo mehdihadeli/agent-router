@@ -1,10 +1,10 @@
-using System.Text.Json;
-using Microsoft.Extensions.Configuration;
+﻿using System.Text.Json;
+using AgentRouter.Core.Storage;
 
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 /// <summary>
-/// Loads the user config file at ~/claude-code-gateway/config.json.
+/// Loads the user config file at ~/.agent-router/config.json unless the data directory is overridden.
 ///
 /// Supported JSON schema:
 /// - Flat (preferred): properties at root
@@ -17,16 +17,13 @@ public sealed class AgentRouterConfigConfigurationProvider : ConfigurationProvid
     private readonly string _configPath;
     private readonly bool _createIfMissing;
 
-    public AgentRouterConfigConfigurationProvider(
-        string? homeOverridePath,
-        bool createIfMissing
-    )
+    public AgentRouterConfigConfigurationProvider(string? homeOverridePath, bool createIfMissing)
     {
-        var home = homeOverridePath;
-        if (string.IsNullOrWhiteSpace(home))
-            home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var rootDirectory = string.IsNullOrWhiteSpace(homeOverridePath)
+            ? GatewayPaths.Resolve().RootDirectory
+            : Path.Combine(homeOverridePath, ".agent-router");
 
-        _configPath = Path.Combine(home, "claude-code-gateway", "config.json");
+        _configPath = Path.Combine(rootDirectory, "config.json");
         _createIfMissing = createIfMissing;
     }
 

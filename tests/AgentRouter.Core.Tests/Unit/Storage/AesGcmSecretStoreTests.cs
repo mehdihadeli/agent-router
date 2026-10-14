@@ -1,8 +1,9 @@
-using AgentRouter.Storage.Secrets;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Tests.Support.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class AesGcmSecretStoreTests
 {

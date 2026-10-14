@@ -10,19 +10,20 @@
     <File Path="readme.md" />
     <File Path="version.json" />
   </Folder>
+  <Folder Name="/.testagent/">
+    <Project Path=".testagent/NamespaceMigration/NamespaceMigration.csproj" />
+  </Folder>
   <Folder Name="/docs/">
-    <File Path="docs/index.md" />
-    <File Path="docs/features.md" />
     <File Path="docs/integrations.md" />
   </Folder>
-  <Folder Name="/docs/guide/">
-    <File Path="docs/guide/development.md" />
-    <File Path="docs/guide/project-structure.md" />
+  <Folder Name="/docs/dev/">
+    <File Path="docs/dev/development.md" />
+    <File Path="docs/dev/project-structure.md" />
+    <File Path="docs/dev/versioning.md" />
   </Folder>
   <Folder Name="/docs/reference/">
     <File Path="docs/reference/cli.md" />
     <File Path="docs/reference/configuration.md" />
-    <File Path="docs/reference/testing.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AgentRouter.Cli/AgentRouter.Cli.csproj" />

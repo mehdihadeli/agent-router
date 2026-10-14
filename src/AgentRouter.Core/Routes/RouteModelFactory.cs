@@ -1,8 +1,7 @@
-using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Contracts;
+using AgentRouter.Core.Constants;
+using AgentRouter.Core.Contracts;
 
-namespace AgentRouter.Shared.Routes;
+namespace AgentRouter.Core.Routes;
 
 public static class RouteModelFactory
 {
@@ -98,15 +97,21 @@ public static class RouteModelFactory
         return $"{GetProviderRouteName(provider)}/{model}";
     }
 
-    public static ModelReference ResolveRequestModel(ClaudeGatewayOptions options, string? modelRoute)
+    public static ModelReference ResolveRequestModel(
+        ClaudeGatewayOptions options,
+        string? modelRoute
+    )
     {
         if (!string.IsNullOrWhiteSpace(modelRoute))
         {
             var parts = modelRoute.Split('/', 2, StringSplitOptions.TrimEntries);
             var provider = options.Providers.FirstOrDefault(candidate =>
-                parts.Length == 2 && IsProviderNameMatch(candidate, parts[0])
-                && candidate.Models.Any(model => string.Equals(
-                    parts[1], model, StringComparison.OrdinalIgnoreCase)));
+                parts.Length == 2
+                && IsProviderNameMatch(candidate, parts[0])
+                && candidate.Models.Any(model =>
+                    string.Equals(parts[1], model, StringComparison.OrdinalIgnoreCase)
+                )
+            );
             if (provider is not null)
             {
                 return Resolve(options, modelRoute);
@@ -114,7 +119,9 @@ public static class RouteModelFactory
 
             foreach (var tier in options.TierRoutes)
             {
-                if (modelRoute.StartsWith($"claude-{tier.Key}-", StringComparison.OrdinalIgnoreCase))
+                if (
+                    modelRoute.StartsWith($"claude-{tier.Key}-", StringComparison.OrdinalIgnoreCase)
+                )
                 {
                     return Resolve(options, tier.Value);
                 }
@@ -137,7 +144,7 @@ public static class RouteModelFactory
     public static string ResolveServiceKey(ClaudeGatewayOptions options, string? modelRoute)
     {
         if (string.IsNullOrWhiteSpace(modelRoute))
-            return AgentRouter.Shared.Constants.RouteModelKeys.Default;
+            return RouteModelKeys.Default;
 
         var parts = modelRoute.Split(
             '/',
@@ -146,18 +153,16 @@ public static class RouteModelFactory
         );
 
         if (parts.Length != 2)
-            return AgentRouter.Shared.Constants.RouteModelKeys.Default;
+            return RouteModelKeys.Default;
 
         var providerName = parts[0];
         var model = parts[1];
 
         // Verify the provider is configured so we don't hand out a key that has no registration.
-        var provider = options.Providers.FirstOrDefault(p =>
-            IsProviderNameMatch(p, providerName)
-        );
+        var provider = options.Providers.FirstOrDefault(p => IsProviderNameMatch(p, providerName));
 
         if (provider is null)
-            return AgentRouter.Shared.Constants.RouteModelKeys.Default;
+            return RouteModelKeys.Default;
 
         // Return the normalised lowercase key, matching what GetProviderModelName produces.
         return GetProviderModelName(provider, model);
@@ -189,9 +194,7 @@ public static class RouteModelFactory
         if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
             return modelRoute;
 
-        var providerIsConfigured = options.Providers.Any(p =>
-            IsProviderNameMatch(p, parts[0])
-        );
+        var providerIsConfigured = options.Providers.Any(p => IsProviderNameMatch(p, parts[0]));
 
         return providerIsConfigured ? parts[1] : modelRoute;
     }
@@ -219,7 +222,11 @@ public static class RouteModelFactory
     private static bool IsProviderNameMatch(ClaudeGatewayProvider provider, string providerName)
     {
         if (!string.IsNullOrWhiteSpace(provider.ProviderName))
-            return string.Equals(provider.ProviderName, providerName, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(
+                provider.ProviderName,
+                providerName,
+                StringComparison.OrdinalIgnoreCase
+            );
 
         var providerType = provider.ProviderType;
         if (

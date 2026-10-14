@@ -1,12 +1,14 @@
-using AgentRouter.Storage.Configuration;
-using AgentRouter.Storage.Secrets;
-using AgentRouter.Storage.Sqlite;
-using Microsoft.Extensions.DependencyInjection;
+﻿using System.Text.Json;
+using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Serialization;
+using AgentRouter.Core.Storage.Configuration;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Storage.Sqlite;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace AgentRouter.Storage;
+namespace AgentRouter.Core.Storage;
 
-/// <summary>Registers the gateway storage stack (SQLite, secrets, configuration document).</summary>
+/// <summary>Registers the gateway storage stack (JSON configuration, SQLite runtime data, secrets).</summary>
 public static class StorageServiceCollectionExtensions
 {
     /// <summary>
@@ -32,9 +34,15 @@ public static class StorageServiceCollectionExtensions
 
         var masterKey = MasterKeyProvider.Resolve(paths, options.MasterKey);
 
-        var connectionFactory = string.IsNullOrWhiteSpace(options.DatabasePath)
+        var databasePath = options.DatabasePath;
+        if (string.IsNullOrWhiteSpace(databasePath))
+            databasePath = LoadConfiguredDatabasePath(paths);
+        if (!string.IsNullOrWhiteSpace(databasePath) && !Path.IsPathRooted(databasePath))
+            databasePath = Path.Combine(paths.RootDirectory, databasePath);
+
+        var connectionFactory = string.IsNullOrWhiteSpace(databasePath)
             ? new SqliteConnectionFactory(paths)
-            : new SqliteConnectionFactory(options.DatabasePath);
+            : new SqliteConnectionFactory(databasePath);
 
         services.TryAddSingleton(paths);
         services.TryAddSingleton(masterKey);
@@ -47,5 +55,19 @@ public static class StorageServiceCollectionExtensions
         services.TryAddSingleton<IConfigStore, SqliteConfigStore>();
 
         return services;
+    }
+
+    private static string? LoadConfiguredDatabasePath(GatewayPaths paths)
+    {
+        var environmentPath = Environment.GetEnvironmentVariable("Storage__DatabasePath");
+        if (!string.IsNullOrWhiteSpace(environmentPath))
+            return environmentPath;
+
+        if (!File.Exists(paths.ConfigPath))
+            return null;
+
+        var json = File.ReadAllText(paths.ConfigPath);
+        var document = JsonSerializer.Deserialize<GatewayConfigDocument>(json, GatewayJson.Options);
+        return document?.Storage.DatabasePath;
     }
 }

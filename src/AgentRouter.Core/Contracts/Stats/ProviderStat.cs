@@ -1,6 +1,6 @@
-namespace AgentRouter.Contracts.Stats;
-
 using System.Text.Json.Serialization;
+
+namespace AgentRouter.Core.Contracts.Stats;
 
 /// <summary>
 /// Durable per-provider counters. Mirrored into SQLite so the panel and the proxy share one view

@@ -1,6 +1,6 @@
-using AgentRouter.Contracts.Defaults;
+﻿using AgentRouter.Core.Contracts.Defaults;
 
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>
 /// The persisted gateway configuration document. This is the single source of truth for all
@@ -9,6 +9,8 @@ namespace AgentRouter.Contracts.Configuration;
 /// </summary>
 public sealed class GatewayConfigDocument
 {
+    public StorageConfig Storage { get; set; } = new();
+
     public ServerConfig Server { get; set; } = new();
 
     /// <summary>Per-provider configuration keyed by provider id or custom provider slug.</summary>

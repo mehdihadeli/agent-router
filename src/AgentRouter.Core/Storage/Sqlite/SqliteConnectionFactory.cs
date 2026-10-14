@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace AgentRouter.Storage.Sqlite;
+namespace AgentRouter.Core.Storage.Sqlite;
 
 /// <summary>
 /// Creates configured SQLite connections. Every connection applies the pragmas the gateway

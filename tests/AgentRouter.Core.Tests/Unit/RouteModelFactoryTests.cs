@@ -1,10 +1,9 @@
-using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Contracts;
-using AgentRouter.Shared.Routes;
+using AgentRouter.Core;
+using AgentRouter.Core.Contracts;
+using AgentRouter.Core.Routes;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit;
 
 public class RouteModelFactoryTests
 {

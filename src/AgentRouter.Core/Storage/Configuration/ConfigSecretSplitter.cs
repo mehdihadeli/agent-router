@@ -1,10 +1,10 @@
 using System.Text.Json;
-using AgentRouter.Contracts.Configuration;
-using AgentRouter.Contracts.Defaults;
-using AgentRouter.Contracts.Serialization;
-using AgentRouter.Storage.Secrets;
+using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Defaults;
+using AgentRouter.Core.Contracts.Serialization;
+using AgentRouter.Core.Storage.Secrets;
 
-namespace AgentRouter.Storage.Configuration;
+namespace AgentRouter.Core.Storage.Configuration;
 
 /// <summary>
 /// Moves secret values between the configuration document and the encrypted secret store, and

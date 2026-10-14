@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Configuration;
+namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Non-secret UI state persisted by the panel.</summary>
 public sealed class PanelSettings

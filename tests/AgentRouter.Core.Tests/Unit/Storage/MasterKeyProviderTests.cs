@@ -1,7 +1,8 @@
-using AgentRouter.Storage.Secrets;
+﻿using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Tests.Support.Storage;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class MasterKeyProviderTests
 {
@@ -41,9 +42,22 @@ public class MasterKeyProviderTests
     public async Task Resolve_ConcurrentFirstRunUsesOneCompleteKey()
     {
         using var workspace = new TempWorkspace();
-        var keys = await Task.WhenAll(Enumerable.Range(0, 16).Select(iteration => Task.Run(
-            () => MasterKeyProvider.Resolve(workspace.Paths, NoEnvironmentOverride), TestContext.Current.CancellationToken)));
-        var persisted = Convert.FromHexString(await File.ReadAllTextAsync(workspace.Paths.MasterKeyPath, TestContext.Current.CancellationToken));
+        var keys = await Task.WhenAll(
+            Enumerable
+                .Range(0, 16)
+                .Select(iteration =>
+                    Task.Run(
+                        () => MasterKeyProvider.Resolve(workspace.Paths, NoEnvironmentOverride),
+                        TestContext.Current.CancellationToken
+                    )
+                )
+        );
+        var persisted = Convert.FromHexString(
+            await File.ReadAllTextAsync(
+                workspace.Paths.MasterKeyPath,
+                TestContext.Current.CancellationToken
+            )
+        );
         Assert.Equal(MasterKey.KeySizeBytes, persisted.Length);
         Assert.All(keys, key => Assert.Equal(persisted, key.Value));
         Assert.Single(Directory.GetFiles(workspace.Root));

@@ -1,4 +1,4 @@
-name: Build, test, and publish
+name: Build-Test-Publish
 
 on:
   pull_request:
@@ -32,6 +32,17 @@ jobs:
 
       - name: Restore local tools
         run: dotnet tool restore
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/AgentRouter.Web/package-lock.json
+
+      - name: Build management UI
+        working-directory: src/AgentRouter.Web
+        run: npm ci && npm run build
 
       - name: Restore
         run: dotnet restore agent-router.slnx
@@ -100,6 +111,17 @@ jobs:
       - name: Restore
         run: dotnet restore src/AgentRouter.Cli/AgentRouter.Cli.csproj
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/AgentRouter.Web/package-lock.json
+
+      - name: Build management UI
+        working-directory: src/AgentRouter.Web
+        run: npm ci && npm run build
+
       - name: Pack
         run: dotnet pack src/AgentRouter.Cli/AgentRouter.Cli.csproj --configuration Release --no-restore --output artifacts -p:PublicRelease=true -p:PackageVersion=${{ needs.calculate-version.outputs.version }}
 
@@ -124,10 +146,10 @@ jobs:
 
             if [[ "$runtime" == win-* ]]; then
               mv "$publish_dir/AgentRouter.Cli.exe" "$publish_dir/ar.exe"
-              (cd "$publish_dir" && zip -q "../../artifacts/agent-router-$runtime.zip" ar.exe)
+              (cd "$publish_dir" && zip -qr "../../artifacts/agent-router-$runtime.zip" ar.exe ui)
             else
               mv "$publish_dir/AgentRouter.Cli" "$publish_dir/ar"
-              tar -czf "artifacts/agent-router-$runtime.tar.gz" -C "$publish_dir" ar
+              tar -czf "artifacts/agent-router-$runtime.tar.gz" -C "$publish_dir" ar ui
             fi
           done
 

@@ -1,4 +1,4 @@
-namespace AgentRouter.Storage.Secrets;
+namespace AgentRouter.Core.Storage.Secrets;
 
 /// <summary>
 /// The AES-256-GCM key used to protect the secret store. Wrapped in a type (instead of a bare

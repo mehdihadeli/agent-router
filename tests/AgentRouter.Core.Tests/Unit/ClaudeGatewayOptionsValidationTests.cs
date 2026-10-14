@@ -1,12 +1,11 @@
-using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Contracts;
-using AgentRouter.Shared.Routes;
+using AgentRouter.Core;
+using AgentRouter.Core.Contracts;
+using AgentRouter.Core.Routes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit;
 
 public class ClaudeGatewayOptionsValidationTests
 {

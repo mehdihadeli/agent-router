@@ -1,10 +1,10 @@
 using System.Text.Json;
-using AgentRouter.Converters;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Converters;
+using AgentRouter.Core.Api.Models.Anthropic;
 using Microsoft.Extensions.AI;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Api;
 
 public class AnthropicMEAIConverterTests
 {

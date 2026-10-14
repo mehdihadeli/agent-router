@@ -1,6 +1,4 @@
-using AgentRouter.Shared.AIProviders;
-
-namespace AgentRouter.Shared.Contracts;
+namespace AgentRouter.Core.Contracts;
 
 public class ClaudeGatewayProvider
 {

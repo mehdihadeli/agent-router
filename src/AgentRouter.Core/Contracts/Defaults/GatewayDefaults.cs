@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Defaults;
+﻿namespace AgentRouter.Core.Contracts.Defaults;
 
 /// <summary>Well-known default values shared by the proxy, panel, and CLI.</summary>
 public static class GatewayDefaults
@@ -7,19 +7,21 @@ public static class GatewayDefaults
 
     public const int PanelPort = 6767;
 
+    public const long MaxInferenceRequestBodyBytes = 16 * 1024 * 1024;
+
     public const string LoopbackHost = "127.0.0.1";
 
     /// <summary>Environment variable that overrides the bind interface (Docker sets 0.0.0.0).</summary>
-    public const string BindHostEnvironmentVariable = "CC_GATEWAY_BIND_HOST";
+    public const string BindHostEnvironmentVariable = "AR_BIND_HOST";
 
     /// <summary>Environment variable used by the Electron supervisor to inject the master key.</summary>
-    public const string SecretKeyEnvironmentVariable = "CC_GATEWAY_SECRET_KEY";
+    public const string SecretKeyEnvironmentVariable = "AR_SECRET_KEY";
 
     /// <summary>Environment variable overriding the gateway data directory.</summary>
-    public const string ConfigDirectoryEnvironmentVariable = "CC_GATEWAY_CONFIG_DIR";
+    public const string ConfigDirectoryEnvironmentVariable = "AR_CONFIG_DIR";
 
     /// <summary>Environment variable adding extra allowed panel origins (comma separated).</summary>
-    public const string PanelOriginsEnvironmentVariable = "CC_GATEWAY_PANEL_ORIGINS";
+    public const string PanelOriginsEnvironmentVariable = "AR_PANEL_ORIGINS";
 
     /// <summary>Prefix for every generated gateway auth token.</summary>
     public const string AuthTokenPrefix = "sk_";

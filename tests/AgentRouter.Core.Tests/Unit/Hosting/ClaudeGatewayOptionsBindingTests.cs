@@ -1,11 +1,11 @@
-﻿using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Configuration;
+using AgentRouter.Core;
+using AgentRouter.Core.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Hosting;
 
 public class ClaudeGatewayOptionsBindingTests
 {
@@ -13,14 +13,14 @@ public class ClaudeGatewayOptionsBindingTests
     public void Binds_ClaudeGatewayOptions_FromFlatConfigRoot()
     {
         var tempHome = Path.Combine(Path.GetTempPath(), "ccg-home-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(tempHome, "claude-code-gateway"));
+        Directory.CreateDirectory(Path.Combine(tempHome, ".agent-router"));
 
         Environment.SetEnvironmentVariable("TEST_BASE", "https://example.test/");
         Environment.SetEnvironmentVariable("TEST_KEY", "k123");
         try
         {
             File.WriteAllText(
-                Path.Combine(tempHome, "claude-code-gateway", "config.json"),
+                Path.Combine(tempHome, ".agent-router", "config.json"),
                 "{\"GatewayBaseAddress\":\"http://localhost:4000\",\"EnableTelemetry\":true,\"RouteModel\":{\"DefaultModel\":\"azure/gpt-4.1\",\"ThinkingModel\":\"azure/gpt-4.1\",\"SearchModel\":\"azure/gpt-4.1\"},\"Providers\":[{\"ProviderType\":\"Azure\",\"BaseAddress\":\"${TEST_BASE}\",\"ApiKey\":\"${TEST_KEY}\",\"DeploymentName\":\"gpt-4.1\",\"Models\":[\"gpt-4.1\"]}]}"
             );
 

@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Sessions;
+namespace AgentRouter.Core.Contracts.Sessions;
 
 /// <summary>
 /// Truncated prompt/response capture for one request, stored separately from

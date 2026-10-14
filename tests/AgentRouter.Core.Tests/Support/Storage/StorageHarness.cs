@@ -1,12 +1,12 @@
-using System.Security.Cryptography;
-using AgentRouter.Storage;
-using AgentRouter.Storage.Configuration;
-using AgentRouter.Storage.Secrets;
-using AgentRouter.Storage.Sqlite;
+﻿using System.Security.Cryptography;
+using AgentRouter.Core.Storage;
+using AgentRouter.Core.Storage.Configuration;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Storage.Sqlite;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Support.Storage;
 
 /// <summary>
 /// Disposable temporary data directory used by storage tests.
@@ -101,6 +101,7 @@ internal sealed class StorageHarness : IDisposable
         var splitter = new ConfigSecretSplitter(secretStore);
         var configStore = new SqliteConfigStore(
             connectionFactory,
+            paths,
             splitter,
             tokenProvider,
             NullLogger<SqliteConfigStore>.Instance

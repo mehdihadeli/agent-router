@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 public static class ClaudeSettingsConfigurationExtensions
 {
@@ -10,12 +10,15 @@ public static class ClaudeSettingsConfigurationExtensions
         string? homeOverridePath = null
     )
     {
-        builder.Add(new ClaudeSettingsConfigurationSource { HomeOverridePath = homeOverridePath });
+        AddFileDefaults(
+            builder,
+            new ClaudeSettingsConfigurationSource { HomeOverridePath = homeOverridePath }
+        );
         return builder;
     }
 
     /// <summary>
-    /// Load gateway-specific config from ~/agent-router/config.json.
+    /// Load gateway-specific config from ~/.agent-router/config.json unless the data directory is overridden.
     /// </summary>
     public static IConfigurationBuilder AddAgentRouterConfig(
         this IConfigurationBuilder builder,
@@ -23,7 +26,8 @@ public static class ClaudeSettingsConfigurationExtensions
         bool createIfMissing = true
     )
     {
-        builder.Add(
+        AddFileDefaults(
+            builder,
             new AgentRouterConfigConfigurationSource
             {
                 HomeOverridePath = homeOverridePath,
@@ -71,12 +75,34 @@ public static class ClaudeSettingsConfigurationExtensions
     {
         for (var i = 0; i < sources.Count; i++)
         {
-            if (sources[i] is EnvironmentVariablesConfigurationSource)
+            if (
+                sources[i]
+                is EnvironmentVariablesConfigurationSource
+                    or CommandLineConfigurationSource
+            )
             {
                 return i;
             }
         }
 
         return -1;
+    }
+
+    private static void AddFileDefaults(IConfigurationBuilder builder, IConfigurationSource source)
+    {
+        for (var index = 0; index < builder.Sources.Count; index++)
+        {
+            if (
+                builder.Sources[index]
+                is DotEnvConfigurationSource
+                    or EnvironmentVariablesConfigurationSource
+                    or CommandLineConfigurationSource
+            )
+            {
+                builder.Sources.Insert(index, source);
+                return;
+            }
+        }
+        builder.Add(source);
     }
 }

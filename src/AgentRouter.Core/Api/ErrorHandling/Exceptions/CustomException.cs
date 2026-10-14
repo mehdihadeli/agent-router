@@ -1,4 +1,4 @@
-namespace AgentRouter.ErrorHandling.Exceptions;
+namespace AgentRouter.Core.Api.ErrorHandling.Exceptions;
 
 public class CustomException : System.Exception
 {

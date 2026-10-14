@@ -1,8 +1,8 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
-namespace AgentRouter.Converters;
+namespace AgentRouter.Core.Api.Converters;
 
 /// <summary>
 /// Converts a Microsoft.Extensions.AI streaming response (<see cref="ChatResponseUpdate"/>)
@@ -32,6 +32,12 @@ public static class MEAIStreamToAnthropicStreamConverter
         CancellationToken ct
     )
     {
+        await using var updates = stream.GetAsyncEnumerator(ct);
+        var hasUpdate = await updates.MoveNextAsync();
+        ct.ThrowIfCancellationRequested();
+
+        model = hasUpdate ? updates.Current.ModelId ?? model : model;
+
         // Set SSE headers.
         httpContext.Response.ContentType = "text/event-stream";
         httpContext.Response.Headers.CacheControl = "no-cache";
@@ -39,6 +45,10 @@ public static class MEAIStreamToAnthropicStreamConverter
         httpContext.Response.StatusCode = StatusCodes.Status200OK;
 
         var messageId = "msg_" + Guid.NewGuid().ToString("N");
+        var initialUsage = new UsageDetails();
+        if (hasUpdate)
+            foreach (var usage in updates.Current.Contents.OfType<UsageContent>())
+                initialUsage.Add(usage.Details);
 
         // ── message_start ───────────────────────────────────────────────
         await WriteSseEventAsync(
@@ -55,7 +65,11 @@ public static class MEAIStreamToAnthropicStreamConverter
                     model,
                     content = Array.Empty<object>(),
                     stop_reason = (string?)null,
-                    usage = new { input_tokens = 0, output_tokens = 0 },
+                    usage = new
+                    {
+                        input_tokens = initialUsage.InputTokenCount,
+                        output_tokens = initialUsage.OutputTokenCount,
+                    },
                 },
             },
             ct
@@ -64,8 +78,11 @@ public static class MEAIStreamToAnthropicStreamConverter
         // ── Stream content blocks ───────────────────────────────────────
         var state = new StreamState();
 
-        await foreach (var update in stream.WithCancellation(ct))
+        while (hasUpdate)
         {
+            ct.ThrowIfCancellationRequested();
+            var update = updates.Current;
+            state.FinishReason = update.FinishReason ?? state.FinishReason;
             foreach (var content in update.Contents)
             {
                 switch (content)
@@ -77,9 +94,41 @@ public static class MEAIStreamToAnthropicStreamConverter
                     case FunctionCallContent fc:
                         await HandleToolCallAsync(httpContext, state, fc, ct);
                         break;
+
+                    case UsageContent usage:
+                        state.Usage.Add(usage.Details);
+                        break;
                 }
             }
+            try
+            {
+                hasUpdate = await updates.MoveNextAsync();
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                await WriteSseEventAsync(
+                    httpContext,
+                    "error",
+                    new
+                    {
+                        type = "error",
+                        error = new
+                        {
+                            type = "api_error",
+                            message = "Upstream stream interrupted.",
+                        },
+                    },
+                    ct
+                );
+                return;
+            }
         }
+
+        ct.ThrowIfCancellationRequested();
 
         // ── Close any open content block ────────────────────────────────
         if (state.InTextBlock || state.InToolBlock)
@@ -88,7 +137,10 @@ public static class MEAIStreamToAnthropicStreamConverter
         }
 
         // ── message_delta ───────────────────────────────────────────────
-        var stopReason = state.InToolBlock ? "tool_use" : "end_turn";
+        var stopReason =
+            state.FinishReason == ChatFinishReason.Length ? "max_tokens"
+            : state.FinishReason == ChatFinishReason.ToolCalls || state.HasToolCalls ? "tool_use"
+            : "end_turn";
 
         await WriteSseEventAsync(
             httpContext,
@@ -97,7 +149,11 @@ public static class MEAIStreamToAnthropicStreamConverter
             {
                 type = "message_delta",
                 delta = new { stop_reason = stopReason },
-                usage = new { output_tokens = state.OutputTokens },
+                usage = new
+                {
+                    input_tokens = state.Usage.InputTokenCount,
+                    output_tokens = state.Usage.OutputTokenCount,
+                },
             },
             ct
         );
@@ -156,8 +212,6 @@ public static class MEAIStreamToAnthropicStreamConverter
             },
             ct
         );
-
-        state.OutputTokens++;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -171,6 +225,7 @@ public static class MEAIStreamToAnthropicStreamConverter
         CancellationToken ct
     )
     {
+        state.HasToolCalls = true;
         // Close a previous text block if we were in one.
         if (state.InTextBlock)
         {
@@ -227,8 +282,6 @@ public static class MEAIStreamToAnthropicStreamConverter
             },
             ct
         );
-
-        state.OutputTokens++;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -281,6 +334,8 @@ public static class MEAIStreamToAnthropicStreamConverter
         public bool InTextBlock { get; set; }
         public bool InToolBlock { get; set; }
         public string? CurrentToolCallId { get; set; }
-        public int OutputTokens { get; set; }
+        public bool HasToolCalls { get; set; }
+        public ChatFinishReason? FinishReason { get; set; }
+        public UsageDetails Usage { get; } = new();
     }
 }

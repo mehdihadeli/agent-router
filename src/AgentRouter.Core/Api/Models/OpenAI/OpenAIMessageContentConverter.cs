@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Models.OpenAI;
+namespace AgentRouter.Core.Api.Models.OpenAI;
 
 public sealed class OpenAIMessageContentConverter : JsonConverter<MessageContent>
 {

@@ -1,8 +1,8 @@
-using AgentRouter.Converters;
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Converters;
+using AgentRouter.Core.Api.Models.Anthropic;
 using Microsoft.Extensions.AI;
 
-namespace AgentRouter.Features.CreatingMessage;
+namespace AgentRouter.Core.Api.Features.CreatingMessage;
 
 /// <summary>
 /// Handles non-streaming (synchronous) requests.

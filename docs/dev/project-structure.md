@@ -1,5 +1,15 @@
 # Project Structure and Architecture Decision
 
+This is a contributor reference. For installation and everyday workflows, start with the [user documentation](../index.md).
+
+## Namespace Convention
+
+Namespaces match the project root and every containing folder. For example, a converter under `src/AgentRouter.Core/Api/Converters` uses `AgentRouter.Core.Api.Converters`, provider code under `Providers/Anthropic` uses `AgentRouter.Core.Providers.Anthropic`, and tests under `tests/AgentRouter.Core.Tests/Unit/Hosting` use `AgentRouter.Core.Tests.Unit.Hosting`.
+
+The root namespaces are `AgentRouter.Core`, `AgentRouter.Cli`, `AgentRouter.ServiceDefaults`, `AgentRouter.Core.Tests`, and `AgentRouter.Cli.Tests`. IDE0130 enforces folder alignment. ServiceDefaults extension methods now belong to `AgentRouter.ServiceDefaults`, not `Microsoft.Extensions.Hosting`. Consumers compiling against previous namespaces must update imports and fully qualified names; assembly and package names are unchanged.
+
+AgentRouter configuration properties and enum output use PascalCase. Shared serialization retains reads of older property casing and legacy enum spellings. External provider/agent protocols keep their own wire names. See [configuration naming](../reference/configuration.md#naming-conventions).
+
 ## Decision
 
 Use a modular gateway library with one CLI executable. Keep the existing ServiceDefaults library for OpenTelemetry and health configuration. Add an Angular workspace for the first UI phase, then a thin Electron shell for the second phase. Do not add an Aspire AppHost.
@@ -29,6 +39,8 @@ Extract a provider assembly later only for a separately distributed connector or
 ## Library Boundaries
 
 Within Core, use feature ownership: Providers, Routing, Profiles, Storage, Api, and Hosting. Keep persisted documents, runtime configuration, and public management response DTOs distinct: persisted secrets must never become browser responses. Keep SQLite-specific types behind storage services and protocol serialization inside adapters.
+
+Provider-specific SDK setup and compatibility rules belong in separate provider-owned classes. `Providers/Anthropic/AnthropicProvider.cs` owns native Anthropic registration; `Providers/DeepSeek/DeepSeekToolPolicy.cs` owns DeepSeek request compatibility. Shared OpenAI SDK setup must not contain another provider's rewrite implementation. Composition selects these implementations, while Messages and Responses ingress share the same provider clients. Provider choice is independent of whether the caller is Claude Code, Codex or another compatible agent.
 
 Configuration and profile services own validation and mutations; CLI commands and management endpoints call those same services. Hosting registers dependencies and builds the HTTP pipeline; it should not own provider selection or profile policy. Move configuration/profile services out of Hosting as consolidation proceeds. Routing and profile policy must not depend on Spectre.Console, Electron, or Angular.
 
@@ -75,23 +87,11 @@ OTLP export is not a query API or durable request-log store. For Angular observa
 
 Service discovery is unnecessary for fixed configured provider endpoints. Standard HttpClient resilience registration does not by itself prove coverage of OpenAI SDK transports. Review actual provider transport wiring, and define bounded retries deliberately: retries after partial SSE output or on non-idempotent inference requests can duplicate output or charges. Provider failover is routing policy, not automatic parity provided by ServiceDefaults.
 
-## Verified Feature Coverage
+## Feature Coverage
 
-The reference documents are requirements inputs, not implemented behavior. Configuration fields alone do not count as support.
+Use [protocol compatibility](../integrations.md), the [CLI guide](../guide/cli.md), the [web UI guide](../guide/ui.md), and [observability](../guide/observability.md) as the current user-facing capability documentation. Configuration DTOs alone do not establish support for other policies.
 
-| Reference area | Implemented slice | Missing capabilities |
-| --- | --- | --- |
-| Profiles / Agent Config / agent-profile | Named enabled Claude Code CLI profiles, model selection, child-only environment, argument forwarding | Other agents, app entry modes, system-default profiles, per-profile environment overrides, bot binding, desktop multi-instance handling |
-| Providers / provider guide | Named API-key OpenAI Chat and native Anthropic providers, manual model list, list/use/check commands, encrypted persistence; Azure/GitHub adapter paths | Presets, protocol probing, upstream model discovery, Gemini/Responses adapters, OAuth/local-login import, credential pools, account usage |
-| Routing | Recognized explicit model, default route, Opus/Sonnet/Haiku aliases | Conditions/rewrites, Claude billing-message cleanup, subagent model tags and description injection, Codex tool bridge, fallback chains and routing scripts |
-| Server | Inference listener plus separate authenticated loopback management/API/OpenAPI, safe provider/profile CRUD, managed start/stop, health endpoint | In-place inference restart/hot reload, client-key CRUD/limits, MITM/system proxy/network capture/CA installation |
-| CLI guide | init, serve, start/stop/reuse, API-only foreground web, managed/inference status, scoped config tokens, provider add/list/remove/use/check, profile add/list, launch | Angular/ui/browser opening, auto-started shared leases, non-Claude launch entries |
-| Logs and observability | Standard HTTP/runtime OpenTelemetry, AI source/meter subscriptions, logging provider, conditional OTLP export | End-to-end AI export validation, gateway semantic spans/metrics, searchable request logs, body capture/sampling/retention, Angular views, full agent execution traces |
-| UI and desktop | Typed authenticated management backend and OpenAPI | Angular UI/session bootstrap in phase 1; Electron integration in phase 2 |
-
-Passing tests validate selected existing workflows, not parity with the entire reference feature set. Current build and deterministic test results should be checked after each migration.
-
-See the [reference feature coverage checklist](../reference/feature-parity.md) for detailed CLI/core gaps, proposed additional capabilities, and dependency-ordered implementation acceptance criteria.
+Implementation worklists and historical verification notes belong in the ignored local planning directory, not user documentation. Passing selected tests does not establish full agent or reference-project compatibility.
 
 ## Migration Gates
 

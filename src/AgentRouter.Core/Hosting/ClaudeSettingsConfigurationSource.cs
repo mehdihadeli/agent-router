@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 /// <summary>
 /// Loads Claude Code settings from %USERPROFILE%/.claude/settings.json (or $HOME/.claude/settings.json)

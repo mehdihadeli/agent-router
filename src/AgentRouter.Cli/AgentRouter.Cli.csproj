@@ -7,7 +7,20 @@
     <PackageId>AgentRouter</PackageId>
     <PackageDescription>Agent Router: model gateway and local control plane for coding agents.</PackageDescription>
   </PropertyGroup>
-  <ItemGroup></ItemGroup>
+  <ItemGroup>
+    <Content
+      Include="..\AgentRouter.Web\dist\management\browser\**\*"
+      Link="ui\%(RecursiveDir)%(Filename)%(Extension)"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest"
+    />
+  </ItemGroup>
+  <Target Name="RequireManagementUi" BeforeTargets="GenerateNuspec">
+    <Error
+      Condition="!Exists('..\AgentRouter.Web\dist\management\browser\index.html')"
+      Text="Build the management UI before packaging: run npm ci and npm run build in src/AgentRouter.Web."
+    />
+  </Target>
   <ItemGroup>
     <PackageReference Include="Spectre.Console" />
     <PackageReference Include="Spectre.Console.Cli" />

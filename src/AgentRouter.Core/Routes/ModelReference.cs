@@ -1,7 +1,6 @@
-using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Contracts;
+using AgentRouter.Core.Contracts;
 
-namespace AgentRouter.Shared.Routes;
+namespace AgentRouter.Core.Routes;
 
 public sealed record ModelReference(
     string Name,

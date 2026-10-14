@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 public static class ClaudeCodeSettingsWriter
 {

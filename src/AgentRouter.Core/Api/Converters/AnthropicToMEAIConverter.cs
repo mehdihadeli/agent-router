@@ -1,8 +1,8 @@
-using System.Text.Json;
-using AgentRouter.Models.Anthropic;
+﻿using System.Text.Json;
+using AgentRouter.Core.Api.Models.Anthropic;
 using Microsoft.Extensions.AI;
 
-namespace AgentRouter.Converters;
+namespace AgentRouter.Core.Api.Converters;
 
 /// <summary>
 /// Converts between Anthropic Messages API models and MEAI types
@@ -22,7 +22,8 @@ public static class AnthropicToMEAIConverter
     /// <see cref="ChatMessage"/> list and <see cref="ChatOptions"/>.
     /// </summary>
     public static (List<ChatMessage> Messages, ChatOptions Options) ToMEAIChatCompletionRequest(
-        AnthropicRequest request)
+        AnthropicRequest request
+    )
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -41,9 +42,7 @@ public static class AnthropicToMEAIConverter
     /// </summary>
     public static AnthropicResponse ToAnthropicResponse(ChatResponse? chatResponse, string model)
     {
-        var allContent = chatResponse?.Messages
-            .SelectMany(m => m.Contents)
-            .ToList() ?? [];
+        var allContent = chatResponse?.Messages.SelectMany(m => m.Contents).ToList() ?? [];
 
         var content = new List<ResponseContent>();
 
@@ -55,31 +54,36 @@ public static class AnthropicToMEAIConverter
         // Tool calls
         foreach (var fc in allContent.OfType<FunctionCallContent>())
         {
-            content.Add(new ResponseToolUse
-            {
-                Id    = fc.CallId ?? "toolu_" + Guid.NewGuid().ToString("N"),
-                Name  = fc.Name,
-                Input = fc.Arguments is not null
-                    ? JsonSerializer.SerializeToElement(fc.Arguments)
-                    : JsonSerializer.SerializeToElement(new { }),
-            });
+            content.Add(
+                new ResponseToolUse
+                {
+                    Id = fc.CallId ?? "toolu_" + Guid.NewGuid().ToString("N"),
+                    Name = fc.Name,
+                    Input = fc.Arguments is not null
+                        ? JsonSerializer.SerializeToElement(fc.Arguments)
+                        : JsonSerializer.SerializeToElement(new { }),
+                }
+            );
         }
 
         var hasToolUse = content.OfType<ResponseToolUse>().Any();
 
         return new AnthropicResponse
         {
-            Id           = "msg_" + Guid.NewGuid().ToString("N"),
+            Id = "msg_" + Guid.NewGuid().ToString("N"),
             ResponseType = "message",
-            Role         = "assistant",
-            Model        = model,
-            StopReason   = hasToolUse ? "tool_use" : "end_turn",
+            Role = "assistant",
+            Model = chatResponse?.ModelId ?? model,
+            StopReason =
+                chatResponse?.FinishReason == ChatFinishReason.Length ? "max_tokens"
+                : hasToolUse ? "tool_use"
+                : "end_turn",
             StopSequence = null,
-            Content      = content,
+            Content = content,
             Usage = new Usage
             {
-                InputTokens  = 0,
-                OutputTokens = 0,
+                InputTokens = chatResponse?.Usage?.InputTokenCount,
+                OutputTokens = chatResponse?.Usage?.OutputTokenCount,
             },
         };
     }
@@ -106,7 +110,8 @@ public static class AnthropicToMEAIConverter
 
     private static void AppendAnthropicMessage(
         List<ChatMessage> output,
-        Models.Anthropic.Message message)
+        Models.Anthropic.Message message
+    )
     {
         var role = ParseRole(message.Role);
 
@@ -132,7 +137,8 @@ public static class AnthropicToMEAIConverter
 
         void FlushBufferIfAny()
         {
-            if (contentBuffer.Count == 0) return;
+            if (contentBuffer.Count == 0)
+                return;
             output.Add(new ChatMessage(currentRole, [.. contentBuffer]));
             contentBuffer.Clear();
         }
@@ -151,7 +157,8 @@ public static class AnthropicToMEAIConverter
 
                 case ImageBlock:
                     throw new NotSupportedException(
-                        "Anthropic image blocks are not yet supported.");
+                        "Anthropic image blocks are not yet supported."
+                    );
 
                 case ToolUseBlock tu:
                 {
@@ -168,9 +175,12 @@ public static class AnthropicToMEAIConverter
                         try
                         {
                             args = JsonSerializer.Deserialize<Dictionary<string, object?>>(
-                                tu.Input.GetRawText());
+                                tu.Input.GetRawText()
+                            );
                         }
-                        catch { /* leave null */ }
+                        catch
+                        { /* leave null */
+                        }
                     }
 
                     contentBuffer.Add(new FunctionCallContent(tu.Id, tu.Name, args));
@@ -181,8 +191,12 @@ public static class AnthropicToMEAIConverter
                 {
                     // tool_result must be a separate Tool-role message.
                     FlushBufferIfAny();
-                    output.Add(new ChatMessage(ChatRole.Tool,
-                        [new FunctionResultContent(tr.ToolUseId, tr.Content ?? string.Empty)]));
+                    output.Add(
+                        new ChatMessage(
+                            ChatRole.Tool,
+                            [new FunctionResultContent(tr.ToolUseId, tr.Content ?? string.Empty)]
+                        )
+                    );
                     currentRole = role; // restore original role
                     break;
                 }
@@ -200,8 +214,8 @@ public static class AnthropicToMEAIConverter
     {
         var options = new ChatOptions
         {
-            ModelId         = request.Model,
-            Temperature     = request.Temperature,
+            ModelId = request.Model,
+            Temperature = request.Temperature,
             MaxOutputTokens = request.MaxTokens == 0 ? null : (int?)request.MaxTokens,
         };
 
@@ -212,17 +226,30 @@ public static class AnthropicToMEAIConverter
         {
             options.Tools = tools
                 .Select(t =>
-                {
-                    Func<AIFunctionArguments, object?> stub = static (_) => null;
-                    return (AITool)AIFunctionFactory.Create(stub, t.Name, t.Description);
-                })
+                    (AITool)
+                        new ForwardedFunction(
+                            t.Name,
+                            t.Description,
+                            EnsureJsonSchemaObject(t.InputSchema)
+                        )
+                )
                 .ToList();
 
             // Map tool choice — default to Auto when tools are present.
             var toolChoice = ResolveToolChoice(request);
-            options.ToolMode = IsToolChoiceNone(toolChoice)
-                ? ChatToolMode.None
-                : ChatToolMode.Auto;
+            var choice = toolChoice is { ValueKind: JsonValueKind.Object }
+                ? toolChoice.Value.GetProperty("type").GetString()
+                : toolChoice?.GetString();
+            options.ToolMode = choice switch
+            {
+                "none" => ChatToolMode.None,
+                "any" or "required" => ChatToolMode.RequireAny,
+                "tool" => ChatToolMode.RequireSpecific(
+                    toolChoice!.Value.GetProperty("name").GetString()!
+                ),
+                null or "auto" => ChatToolMode.Auto,
+                _ => throw new NotSupportedException("Unsupported tool choice."),
+            };
         }
 
         return options;
@@ -235,13 +262,15 @@ public static class AnthropicToMEAIConverter
     /// <summary>Converts Anthropic tool_choice → OpenAI-shaped tool_choice JsonElement.</summary>
     internal static JsonElement? ConvertToolChoice(JsonElement? anthropicToolChoice)
     {
-        if (anthropicToolChoice is null) return null;
+        if (anthropicToolChoice is null)
+            return null;
         var tc = anthropicToolChoice.Value;
 
         if (tc.ValueKind == JsonValueKind.String)
         {
             var value = tc.GetString();
-            if (string.IsNullOrWhiteSpace(value)) return null;
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
             if (string.Equals(value, "any", StringComparison.OrdinalIgnoreCase))
                 return JsonSerializer.SerializeToElement("required");
             return JsonSerializer.SerializeToElement(value.ToLowerInvariant());
@@ -249,16 +278,22 @@ public static class AnthropicToMEAIConverter
 
         if (tc.ValueKind == JsonValueKind.Object)
         {
-            if (!tc.TryGetProperty("type", out var typeEl)) return null;
+            if (!tc.TryGetProperty("type", out var typeEl))
+                return null;
             var type = typeEl.GetString();
-            if (string.IsNullOrWhiteSpace(type)) return null;
+            if (string.IsNullOrWhiteSpace(type))
+                return null;
 
             if (string.Equals(type, "tool", StringComparison.OrdinalIgnoreCase))
             {
-                if (!tc.TryGetProperty("name", out var nameEl)) return null;
+                if (!tc.TryGetProperty("name", out var nameEl))
+                    return null;
                 var name = nameEl.GetString();
-                if (string.IsNullOrWhiteSpace(name)) return null;
-                return JsonSerializer.SerializeToElement(new { type = "function", function = new { name } });
+                if (string.IsNullOrWhiteSpace(name))
+                    return null;
+                return JsonSerializer.SerializeToElement(
+                    new { type = "function", function = new { name } }
+                );
             }
 
             return tc;
@@ -271,30 +306,42 @@ public static class AnthropicToMEAIConverter
     // Private helpers
     // ═════════════════════════════════════════════════════════════════════
 
-    private static ChatRole ParseRole(string role) => role.ToLowerInvariant() switch
-    {
-        "assistant" => ChatRole.Assistant,
-        "system"    => ChatRole.System,
-        "tool"      => ChatRole.Tool,
-        _           => ChatRole.User,
-    };
+    private static ChatRole ParseRole(string role) =>
+        role.ToLowerInvariant() switch
+        {
+            "assistant" => ChatRole.Assistant,
+            "system" => ChatRole.System,
+            "tool" => ChatRole.Tool,
+            _ => ChatRole.User,
+        };
 
     private static string GetSystemText(SystemPrompt? system)
     {
-        if (system is null) return string.Empty;
-        if (system.Single is not null) return system.Single;
-        if (system.Multiple is not null) return string.Join("\n", system.Multiple.Select(m => m.Text));
+        if (system is null)
+            return string.Empty;
+        if (system.Single is not null)
+            return system.Single;
+        if (system.Multiple is not null)
+            return string.Join("\n", system.Multiple.Select(m => m.Text));
         return string.Empty;
     }
 
     private static List<Models.Anthropic.Tool>? ResolveTools(AnthropicRequest request)
     {
         var tools = request.Tools;
-        if (tools is null && request.Extra is not null
-            && request.Extra.TryGetValue("tools", out var toolsEl))
+        if (
+            tools is null
+            && request.Extra is not null
+            && request.Extra.TryGetValue("tools", out var toolsEl)
+        )
         {
-            try { tools = JsonSerializer.Deserialize<List<Models.Anthropic.Tool>>(toolsEl); }
-            catch { /* ignore */ }
+            try
+            {
+                tools = JsonSerializer.Deserialize<List<Models.Anthropic.Tool>>(toolsEl);
+            }
+            catch
+            { /* ignore */
+            }
         }
         return tools;
     }
@@ -302,25 +349,36 @@ public static class AnthropicToMEAIConverter
     private static JsonElement? ResolveToolChoice(AnthropicRequest request)
     {
         JsonElement? toolChoice = request.ToolChoice;
-        if (toolChoice is null && request.Extra is not null
-            && request.Extra.TryGetValue("tool_choice", out var tcEl))
+        if (
+            toolChoice is null
+            && request.Extra is not null
+            && request.Extra.TryGetValue("tool_choice", out var tcEl)
+        )
         {
             toolChoice = tcEl;
         }
         return toolChoice;
     }
 
-    private static bool IsToolChoiceNone(JsonElement? toolChoice)
+    private sealed class ForwardedFunction(string name, string? description, JsonElement schema)
+        : AIFunctionDeclaration
     {
-        return toolChoice is { ValueKind: JsonValueKind.String }
-               && string.Equals(toolChoice.Value.GetString(), "none",
-                   StringComparison.OrdinalIgnoreCase);
+        public override string Name => name;
+        public override string Description => description ?? string.Empty;
+        public override JsonElement JsonSchema => schema;
     }
 
     private static JsonElement EnsureJsonSchemaObject(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object)
-            return JsonSerializer.SerializeToElement(new { type = "object", properties = new { }, additionalProperties = false });
+            return JsonSerializer.SerializeToElement(
+                new
+                {
+                    type = "object",
+                    properties = new { },
+                    additionalProperties = false,
+                }
+            );
 
         if (element.TryGetProperty("type", out _))
             return element;

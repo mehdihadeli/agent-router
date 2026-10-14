@@ -1,12 +1,14 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
-using AgentRouter.Storage;
-using AgentRouter.Storage.Secrets;
-using AgentRouter.Storage.Sqlite;
+using AgentRouter.Core.Hosting;
+using AgentRouter.Core.Hosting.Browser;
+using AgentRouter.Core.Storage;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Storage.Sqlite;
 using Microsoft.AspNetCore.Builder;
 
 namespace AgentRouter.Cli;
@@ -56,7 +58,12 @@ public sealed class GatewayServiceController(
                     throw new InvalidOperationException(
                         "Existing service identity could not be verified. No process was stopped or replaced."
                     );
-                return existing;
+                var inference = await GatewayAsync(
+                    existing,
+                    startGateway ? "start" : null,
+                    cancellationToken
+                );
+                return existing with { GatewayUrl = inference.Url };
             }
             await RemoveStateAsync(existing, cancellationToken);
         }
@@ -136,7 +143,8 @@ public sealed class GatewayServiceController(
             throw new InvalidOperationException(
                 "Service identity could not be verified. State was not changed."
             );
-        return state;
+        var inference = await GatewayAsync(state, null, cancellationToken);
+        return state with { GatewayUrl = inference.Url };
     }
 
     public async Task<bool> StopAsync(CancellationToken cancellationToken)
@@ -167,7 +175,7 @@ public sealed class GatewayServiceController(
         );
         response.EnsureSuccessStatusCode();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        deadline.CancelAfter(TimeSpan.FromSeconds(45));
         await process.WaitForExitAsync(deadline.Token);
         await RemoveStateAsync(state, cancellationToken);
         return true;
@@ -180,6 +188,56 @@ public sealed class GatewayServiceController(
             ?? throw new InvalidOperationException("No managed service is running.");
         return await secrets.GetAsync(SecretName(state.Identity.InstanceId), cancellationToken)
             ?? throw new InvalidOperationException("Management token is unavailable.");
+    }
+
+    public async Task<BrowserPairingResponse> CreateBrowserPairingAsync(
+        GatewayManagedState state,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!await VerifyAsync(state, cancellationToken))
+            throw new InvalidOperationException("Service identity could not be verified.");
+        using var client = await ClientAsync(state, cancellationToken);
+        using var response = await client.PostAsync(
+            "/management/v1/browser/pairings",
+            null,
+            cancellationToken
+        );
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BrowserPairingResponse>(cancellationToken)
+            ?? throw new InvalidOperationException("Browser pairing was unavailable.");
+    }
+
+    public async Task<GatewayLifecycleResponse> GatewayAsync(
+        string? action,
+        CancellationToken cancellationToken
+    )
+    {
+        if (action is not (null or "start" or "stop" or "restart"))
+            throw new ArgumentException("Invalid gateway action.", nameof(action));
+        var state =
+            await StatusAsync(cancellationToken)
+            ?? throw new InvalidOperationException(
+                "No managed service is running. Run 'ar service start --no-gateway' first."
+            );
+        return await GatewayAsync(state, action, cancellationToken);
+    }
+
+    private async Task<GatewayLifecycleResponse> GatewayAsync(
+        GatewayManagedState state,
+        string? action,
+        CancellationToken cancellationToken
+    )
+    {
+        using var client = await ClientAsync(state, cancellationToken);
+        client.Timeout = TimeSpan.FromSeconds(45);
+        using var response = action is null
+            ? await client.GetAsync("/management/v1/gateway", cancellationToken)
+            : await client.PostAsync($"/management/v1/gateway/{action}", null, cancellationToken);
+        if (response.StatusCode != System.Net.HttpStatusCode.Conflict)
+            response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<GatewayLifecycleResponse>(cancellationToken)
+            ?? throw new InvalidOperationException("Gateway status is unavailable.");
     }
 
     public async Task<int> RunForegroundAsync(
@@ -200,7 +258,7 @@ public sealed class GatewayServiceController(
             var existing = ReadState();
             if (existing is not null && IsProcessAlive(existing.Identity))
                 throw new InvalidOperationException(
-                    "A managed service already exists. Use 'status --managed' or 'stop'."
+                    "A managed service already exists. Use 'ar service status' or 'ar service stop'."
                 );
             if (existing is not null)
                 await RemoveStateAsync(existing, cancellationToken);
@@ -235,19 +293,12 @@ public sealed class GatewayServiceController(
             bootstrap.Token,
             bootstrap.InstanceId
         );
-        WebApplication? gateway = null;
+        var lifecycle = management.Services.GetRequiredService<GatewayLifecycleService>();
         try
         {
-            if (bootstrap.StartGateway)
-            {
-                var builder = GatewayApplication.CreateBuilder();
-                builder.Logging.AddFilter<Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>(
-                    static level => false
-                );
-                gateway = GatewayApplication.Build(builder);
-                await gateway.StartAsync(cancellationToken);
-            }
             await management.StartAsync(cancellationToken);
+            if (bootstrap.StartGateway)
+                await lifecycle.StartGatewayAsync(cancellationToken);
             using var process = Process.GetCurrentProcess();
             var identity = new GatewayServiceIdentity(
                 bootstrap.InstanceId,
@@ -257,11 +308,7 @@ public sealed class GatewayServiceController(
                     ?? "unknown"
             );
             WriteState(
-                new GatewayManagedState(
-                    identity,
-                    management.Urls.Single(),
-                    gateway?.Urls.FirstOrDefault()
-                )
+                new GatewayManagedState(identity, management.Urls.Single(), lifecycle.Status.Url)
             );
             if (startupLock is not null)
             {
@@ -273,11 +320,7 @@ public sealed class GatewayServiceController(
         }
         finally
         {
-            if (gateway is not null)
-            {
-                await gateway.StopAsync(CancellationToken.None);
-                await gateway.DisposeAsync();
-            }
+            await lifecycle.StopGatewayAsync(CancellationToken.None);
         }
     }
 

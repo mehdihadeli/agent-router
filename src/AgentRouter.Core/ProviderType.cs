@@ -1,4 +1,4 @@
-namespace AgentRouter.Shared.AIProviders;
+namespace AgentRouter.Core;
 
 public enum ProviderType
 {

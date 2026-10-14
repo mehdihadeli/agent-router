@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 public sealed class AgentRouterConfigConfigurationSource : IConfigurationSource
 {

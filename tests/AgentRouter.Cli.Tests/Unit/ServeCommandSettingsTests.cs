@@ -1,7 +1,7 @@
 using AgentRouter.Cli;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Cli.Tests.Unit;
 
 public sealed class ServeCommandSettingsTests
 {
@@ -31,7 +31,11 @@ public sealed class ServeCommandSettingsTests
     [InlineData("https://localhost:4600")]
     public void Validate_AcceptsAbsoluteHttpUrls(string url)
     {
-        Assert.True(new ServeCommand.Settings { Url = url }.Validate().Successful);
+        Assert.True(
+            new ServeCommand.Settings { Url = url }
+                .Validate()
+                .Successful
+        );
     }
 
     [Theory]

@@ -1,6 +1,6 @@
-using AgentRouter.Models.Anthropic;
+using AgentRouter.Core.Api.Models.Anthropic;
 
-namespace AgentRouter.Features.CountingTokens;
+namespace AgentRouter.Core.Api.Features.CountingTokens;
 
 public static class CountTokensEndpoint
 {

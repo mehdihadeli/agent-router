@@ -1,4 +1,4 @@
-namespace AgentRouter.Contracts.Sessions;
+namespace AgentRouter.Core.Contracts.Sessions;
 
 /// <summary>Lifecycle state of a recorded session.</summary>
 public enum SessionStatus

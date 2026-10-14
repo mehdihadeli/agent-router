@@ -1,8 +1,7 @@
-using System.Security.Cryptography;
-using AgentRouter.Contracts.Defaults;
-using Microsoft.Extensions.Logging;
+﻿using System.Security.Cryptography;
+using AgentRouter.Core.Contracts.Defaults;
 
-namespace AgentRouter.Storage.Secrets;
+namespace AgentRouter.Core.Storage.Secrets;
 
 /// <summary>
 /// Resolves the master key. Precedence mirrors the reference implementation: an explicit
@@ -16,7 +15,7 @@ public static class MasterKeyProvider
     /// </summary>
     /// <param name="paths">Gateway data directory.</param>
     /// <param name="environmentOverride">
-    /// Hex-encoded key, normally read from <c>CC_GATEWAY_SECRET_KEY</c>.
+    /// Hex-encoded key, normally read from <c>AR_SECRET_KEY</c>.
     /// </param>
     /// <param name="logger">Optional logger for key-creation diagnostics.</param>
     /// <exception cref="InvalidOperationException">A provided key is present but malformed.</exception>
@@ -58,11 +57,18 @@ public static class MasterKeyProvider
         paths.EnsureCreated();
         if (WriteKeyFile(paths.MasterKeyPath, generated))
         {
-            logger?.LogInformation("Generated a new gateway master key at {MasterKeyPath}.", paths.MasterKeyPath);
+            logger?.LogInformation(
+                "Generated a new gateway master key at {MasterKeyPath}.",
+                paths.MasterKeyPath
+            );
             return new MasterKey(generated);
         }
-        return new MasterKey(ParseHex(File.ReadAllText(paths.MasterKeyPath),
-            $"The master key file at '{paths.MasterKeyPath}' is not a valid {MasterKey.KeySizeBytes}-byte hex key."));
+        return new MasterKey(
+            ParseHex(
+                File.ReadAllText(paths.MasterKeyPath),
+                $"The master key file at '{paths.MasterKeyPath}' is not a valid {MasterKey.KeySizeBytes}-byte hex key."
+            )
+        );
     }
 
     private static byte[] ParseHex(string value, string errorMessage)

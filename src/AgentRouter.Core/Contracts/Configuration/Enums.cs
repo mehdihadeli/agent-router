@@ -1,24 +1,18 @@
-using System.Text.Json.Serialization;
-
-namespace AgentRouter.Contracts.Configuration;
+﻿namespace AgentRouter.Core.Contracts.Configuration;
 
 /// <summary>Which wire protocol a provider endpoint speaks.</summary>
 public enum ProviderCompatibility
 {
-    [JsonStringEnumMemberName("openai")]
     OpenAi,
 
-    [JsonStringEnumMemberName("anthropic")]
     Anthropic,
 }
 
 /// <summary>How a provider authenticates upstream requests.</summary>
 public enum ProviderAuthType
 {
-    [JsonStringEnumMemberName("api_key")]
     ApiKey,
 
-    [JsonStringEnumMemberName("oauth")]
     OAuth,
 }
 
@@ -49,7 +43,6 @@ public enum RoutingStrategy
 {
     Waterfall,
 
-    [JsonStringEnumMemberName("round_robin")]
     RoundRobin,
 }
 

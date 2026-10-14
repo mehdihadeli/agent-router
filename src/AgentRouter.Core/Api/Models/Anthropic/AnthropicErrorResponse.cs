@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Models.Anthropic;
+namespace AgentRouter.Core.Api.Models.Anthropic;
 
 /// <summary>
 /// Anthropic API error response format.
@@ -63,11 +63,7 @@ public class AnthropicErrorResponse
     public static AnthropicErrorResponse NotFound(string message) =>
         new()
         {
-            Error = new AnthropicErrorDetail
-            {
-                Type = ErrorTypes.NotFoundError,
-                Message = message,
-            },
+            Error = new AnthropicErrorDetail { Type = ErrorTypes.NotFoundError, Message = message },
         };
 
     /// <summary>429 – rate limit exceeded.</summary>
@@ -85,11 +81,7 @@ public class AnthropicErrorResponse
     public static AnthropicErrorResponse Api(string message) =>
         new()
         {
-            Error = new AnthropicErrorDetail
-            {
-                Type = ErrorTypes.ApiError,
-                Message = message,
-            },
+            Error = new AnthropicErrorDetail { Type = ErrorTypes.ApiError, Message = message },
         };
 
     /// <summary>529 – the upstream provider is overloaded.</summary>
@@ -126,4 +118,3 @@ public static class ErrorTypes
     public const string ApiError = "api_error";
     public const string OverloadedError = "overloaded_error";
 }
-

@@ -1,34 +1,35 @@
-using System.Text.Json;
-using AgentRouter.Contracts.Configuration;
-using AgentRouter.Contracts.Serialization;
-using AgentRouter.Storage.Secrets;
-using AgentRouter.Storage.Sqlite;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
+﻿using System.Text.Json;
+using AgentRouter.Core.Contracts.Configuration;
+using AgentRouter.Core.Contracts.Serialization;
+using AgentRouter.Core.Storage.Secrets;
+using AgentRouter.Core.Storage.Sqlite;
 
-namespace AgentRouter.Storage.Configuration;
+namespace AgentRouter.Core.Storage.Configuration;
 
 /// <summary>
-/// Stores the configuration document as a single <c>app_state</c> row. The row's <c>version</c>
-/// column is the config version the proxy uses for cheap hot-reload detection.
+/// Stores the configuration document as JSON and keeps its monotonic version in SQLite. Existing
+/// SQLite configuration rows are migrated to the JSON file on first load.
 /// </summary>
 public sealed class SqliteConfigStore : IConfigStore
 {
     internal const string ConfigKey = "config";
 
     private readonly SqliteConnectionFactory _connectionFactory;
+    private readonly GatewayPaths _paths;
     private readonly ConfigSecretSplitter _splitter;
     private readonly IGatewayTokenProvider _tokenProvider;
     private readonly ILogger<SqliteConfigStore> _logger;
 
     public SqliteConfigStore(
         SqliteConnectionFactory connectionFactory,
+        GatewayPaths paths,
         ConfigSecretSplitter splitter,
         IGatewayTokenProvider tokenProvider,
         ILogger<SqliteConfigStore> logger
     )
     {
         _connectionFactory = connectionFactory;
+        _paths = paths;
         _splitter = splitter;
         _tokenProvider = tokenProvider;
         _logger = logger;
@@ -39,11 +40,24 @@ public sealed class SqliteConfigStore : IConfigStore
     )
     {
         var row = await ReadRowAsync(cancellationToken).ConfigureAwait(false);
-        var isFirstRun = row is null;
+        var isFirstRun = !File.Exists(_paths.ConfigPath) && row is null;
 
-        var document = row is null
-            ? GatewayConfigDocument.CreateDefault()
-            : Deserialize(row.Value.Value);
+        GatewayConfigDocument document;
+        if (File.Exists(_paths.ConfigPath))
+        {
+            var json = await File.ReadAllTextAsync(_paths.ConfigPath, cancellationToken)
+                .ConfigureAwait(false);
+            document = Deserialize(json);
+        }
+        else if (row is not null)
+        {
+            document = Deserialize(row.Value.Value);
+            await WriteConfigFileAsync(document, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            document = GatewayConfigDocument.CreateDefault();
+        }
 
         ConfigSecretSplitter.Normalize(document);
         await _splitter.HydrateAsync(document, cancellationToken).ConfigureAwait(false);
@@ -75,6 +89,7 @@ public sealed class SqliteConfigStore : IConfigStore
             .ConfigureAwait(false);
 
         var json = JsonSerializer.Serialize(plaintextFree, GatewayJson.Indented);
+        await WriteConfigFileAsync(json, cancellationToken).ConfigureAwait(false);
 
         await using var connection = await _connectionFactory
             .OpenAsync(cancellationToken)
@@ -90,7 +105,7 @@ public sealed class SqliteConfigStore : IConfigStore
                 updated_at = excluded.updated_at;
             """;
         command.Parameters.AddWithValue("$key", ConfigKey);
-        command.Parameters.AddWithValue("$value", json);
+        command.Parameters.AddWithValue("$value", "config.json");
         command.Parameters.AddWithValue("$updatedAt", DateTimeOffset.UtcNow.ToString("O"));
 
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -132,16 +147,43 @@ public sealed class SqliteConfigStore : IConfigStore
         try
         {
             return JsonSerializer.Deserialize<GatewayConfigDocument>(json, GatewayJson.Options)
-                ?? GatewayConfigDocument.CreateDefault();
+                ?? throw new InvalidDataException("The gateway configuration JSON is null.");
         }
         catch (JsonException exception)
         {
-            _logger.LogError(
-                exception,
-                "Stored gateway configuration is not valid JSON; falling back to defaults."
+            _logger.LogError(exception, "Gateway configuration JSON is not valid.");
+            throw new InvalidDataException(
+                $"Gateway configuration file '{_paths.ConfigPath}' is not valid JSON.",
+                exception
             );
+        }
+    }
 
-            return GatewayConfigDocument.CreateDefault();
+    private async Task WriteConfigFileAsync(
+        GatewayConfigDocument document,
+        CancellationToken cancellationToken
+    )
+    {
+        var plaintextFree = await _splitter
+            .ExtractAsync(document, cancellationToken)
+            .ConfigureAwait(false);
+        var json = JsonSerializer.Serialize(plaintextFree, GatewayJson.Indented);
+        await WriteConfigFileAsync(json, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task WriteConfigFileAsync(string json, CancellationToken cancellationToken)
+    {
+        var temporaryPath = $"{_paths.ConfigPath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllTextAsync(temporaryPath, json, cancellationToken)
+                .ConfigureAwait(false);
+            File.Move(temporaryPath, _paths.ConfigPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
         }
     }
 }

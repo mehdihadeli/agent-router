@@ -2,48 +2,174 @@
 
 The gateway is available as a repo-local launcher and as a packaged .NET tool.
 
-Product name: **Agent Router**. Install package `AgentRouter`; installed command is `ar`. Repo-local launchers are `ar.ps1`, `ar.cmd`, and `ar`; full-name `agent-router` launchers remain available. Existing `CC_GATEWAY_*` variables, the `claude-code-gateway` data directory, legacy configuration paths, and inference identity header are retained for compatibility. No credentials or existing configuration are moved by this rename.
+Product name: **Agent Router**. Install package `AgentRouter`; installed command is `ar`. Repo-local launchers are `ar.ps1`, `ar.cmd`, and `ar`; full-name `agent-router` launchers remain available. Operational environment controls use `AR_*`; JSON-backed settings use their exact configuration paths with `__` between levels. Old environment names are not read. The default data directory is `~/.agent-router`; no credentials or existing configuration are moved automatically. The existing inference identity header is unchanged. See [environment overrides and migration](configuration.md#environment-overrides).
 
-Configuration commands persist providers, routes, and Claude Code profiles in SQLite. Secrets are stored separately using AES-GCM. The proxy defaults to `http://127.0.0.1:49250` and requires its generated client token.
+Configuration commands persist providers, routes, profiles, and storage settings in `~/.agent-router/config.json`. Secrets are stored separately using AES-GCM; SQLite is retained for runtime state and request history. The default database is `~/.agent-router/gateway.sqlite`; its location can be changed with `Storage.DatabasePath`. The proxy defaults to `http://127.0.0.1:49250` and requires its generated client token.
 
 ## Commands
 
-| Command | Purpose |
+Run `ar` to see help. Nothing starts automatically. Use `ar <command> --help` for options and examples. Command names have no abbreviated aliases; useful short options remain. Unknown options are rejected before execution. Agent arguments go after `--`.
+
+### Which Run Command?
+
+- **`ar serve`** runs only the model gateway in your terminal. Use it for a quick local session; Ctrl+C stops it.
+- **`ar service start`** runs management and the gateway in the background. Use it when the gateway should keep running after the terminal closes.
+- **`ar service reload`** restarts only model handling inside that service. Use it after changing providers or routes; management stays available.
+- **`ar service serve`** runs management and the gateway in your terminal. Use it for debugging or an external process supervisor. It does not open a browser or provide a UI.
+
+`service stop` stops everything in the managed process. `service pause` drains active requests and stops only model handling; `service resume` starts it again from saved settings. Pause/resume/reload require a running service and do not control a standalone `serve` process. `service status` separately shows management availability and live inference state (`Running`, `Stopped`, or `Failed`), current listener URL and sanitized lifecycle error. Its exit `0` means management is available, not that inference is ready; inspect `Inference: Running` for readiness. Root `status` probes a standalone gateway.
+
+### Every Command
+
+Examples assume an installed `ar`; in this repository use `./ar.ps1` on Windows or `bash ./ar` on macOS/Linux.
+
+| Command | What it does and why you need it | Example |
+| --- | --- | --- |
+| `init` | Create local configuration and a gateway token. Run once when setting up; existing settings are preserved. | `ar init --port 4600` |
+| `ui` | Start or reuse local management, print a short-lived browser pairing code, and open the Angular UI. | `ar ui --no-open` |
+| `serve` | Run model handling in this terminal, without management. Useful for a short session. | `ar serve` |
+| `status` | Check a standalone gateway before connecting an agent. Exit `0` when available, `1` otherwise. | `ar status --url http://127.0.0.1:4600` |
+| `observability` | Show sanitized request health, latency, token, and provider metrics from retained history. | `ar observability --hours 24` |
+| `service start` | Start or reuse the background process. Management remains available even if inference cannot start. | `ar service start` |
+| `service stop` | Gracefully stop the verified managed process and its gateway. Use when finished. | `ar service stop` |
+| `service status` | Show management availability, live inference readiness, listener addresses and failure details. Use to diagnose your service. | `ar service status` |
+| `service serve` | Run management in this terminal. Useful for debugging or a supervisor; `--no-gateway` allows setup without providers. | `ar service serve --no-gateway` |
+| `service pause` | Drain active requests and stop model handling without losing management. Use for maintenance. | `ar service pause` |
+| `service resume` | Start model handling from saved settings while keeping management alive. Use after pausing or correcting a failure. | `ar service resume` |
+| `service reload` | Validate saved settings, drain active requests and restart model handling to apply changes. This is not seamless hot reload. | `ar service reload` |
+| `provider add` | Save an upstream endpoint, model names, and encrypted key so requests can reach your provider. | `ar provider add work --base-url https://api.openai.com/v1 --models gpt-4.1` |
+| `provider list` | Show saved providers and models without keys. Use to find valid route targets. | `ar provider list` |
+| `provider remove` | Delete an unused provider and its key. Routes/profiles must not reference it. | `ar provider remove unused` |
+| `provider check` | Send a real request or selected capability probes to diagnose upstream connectivity. Explicit opt-in; may incur charges. | `ar provider check work/gpt-4.1 --probe streaming --probe tools` |
+| `route set` | Choose the default model, or a Claude model tier, so the gateway knows where to send requests. | `ar route set work/gpt-4.1 --tier Sonnet` |
+| `route preview` | Evaluate a versioned settings candidate without calls, credential resolution or runtime changes. This is not a preview of existing SQLite routes. | `ar route preview --file settings.json --task review` |
+| `profile add` | Save a named Claude, Codex, OpenCode, or Claude Design launch contract without editing global agent settings. | `ar profile add Review --model work/gpt-4.1` |
+| `profile list` | Show saved profiles and models so you can choose one to launch. | `ar profile list` |
+| `profile edit` | Update model, kind, executable, entry mode, scope, tier routes, enabled state, or native telemetry for a saved profile. | `ar profile edit Review --tier-sonnet work/gpt-4.1` |
+| `profile remove` | Remove a saved agent profile. | `ar profile remove Review` |
+| `profile launch` | Launch the native agent using a saved profile and an already running local gateway. Codex protocol limits still apply. | `ar profile launch Review -- --permission-mode plan` |
+| `config show` | Inspect saved JSON with secrets masked or omitted. Useful when checking setup. | `ar config show` |
+| `config validate` | Validate versioned JSON plus dotenv/environment/argument overlays, without saving or activating them. | `ar config validate --file settings.json --set Server:Port=4600` |
+| `config token` | Print the sensitive gateway credential for manual client setup, or management credential with `--managed`. Never share output. | `ar config token` |
+
+### Options
+
+| Command | Options and meaning |
 | --- | --- |
-| `init [--port <PORT>]` | Initialize local storage and client token; preserve existing configuration. |
-| `provider add <ID> --base-url <URL> --models <CSV> [--protocol OpenAi\|Anthropic] [--api-key-env <NAME>]` | Add a named API-key provider. Reads `OPENAI_API_KEY` by default, or prompts privately when input is interactive. |
-| `provider list` | List configured providers and models without credentials. |
-| `provider remove <ID> [--if-base-url <URL>]` | Remove an unreferenced provider and its encrypted credentials. Optional URL guard refuses mismatches. |
-| `provider use <PROVIDER/MODEL> [--tier <TIER>]` | Set `Default`, `Opus`, `Sonnet`, or `Haiku` route. |
-| `provider check <PROVIDER/MODEL>` | Send a small real upstream request with a 30-second timeout; may incur charges. |
-| `profile add <NAME> [--model <PROVIDER/MODEL>] [--executable <PATH>]` | Save a Claude Code launch profile; executable defaults to `claude`. Use a native executable, not `.cmd` or `.bat`. |
-| `profile list` | List saved profiles. |
-| `config show` | Print JSON with secrets masked or omitted. |
-| `config token [--managed]` | Print sensitive inference token, or a verified running service's separate management token. |
-| `serve [-p\|--port <PORT>] [-u\|--url <URL>]` | Run in foreground; aliases `s`, `run`; default command when none is specified. |
-| `start [--management-port <PORT>] [--no-gateway]` | Start or reuse verified background service; management and optional inference use separate listeners. |
-| `stop` | Gracefully stop only verified managed service; clean stale state without terminating an unrelated process. |
-| `web [--management-port <PORT>] [--no-gateway]` | Run management API and optional inference in foreground. Angular UI and browser opening are not included yet. |
-| `status [--url <URL>] [--managed]` | Check inference, or verify managed instance and report actual listener URLs. Exit `0` when available, `1` otherwise. |
-| `launch <PROFILE> [--url <URL>] -- <AGENT ARGUMENTS>` | Launch an enabled Claude Code profile against an already running local gateway. |
+| `init` | `--port` / `-p`: saved inference port. |
+| `serve` | `--port` / `-p`: inference port; `--url` / `-u`: listener override; `--settings-file PATH`: explicit schema-1 runtime activation. |
+| `ui` | `--no-open`: print the loopback URL and pairing code without opening a browser; `--management-port`: management listener, default 49251. |
+| `service start`, `service serve` | `--management-port` / `-p`: management port; `--no-gateway` / `-n`: management only. |
+| `status`, `profile launch` | `--url` / `-u`: local gateway address. |
+| `observability` | `--hours`: report window from 1 to 720 hours; default is 24. |
+| `provider add <ID>` | Required `--base-url` / `-u` and `--models` / `-m` (comma-separated); optional `--protocol` / `-t` (`OpenAi` or `Anthropic`) and `--api-key-env` / `-e` (environment variable name). |
+| `provider remove <ID>` | Optional `--if-base-url` / `-u`: refuse deletion when the saved endpoint differs. |
+| `provider check <PROVIDER/MODEL>` | Repeatable `--probe`: `basic`, `streaming`, `tools`, `structured`, `reasoning`, or `usage`. No probe runs unless the command is invoked; all probes send real upstream requests. |
+| `route set <PROVIDER/MODEL>` | `--tier` / `-t`: `Default`, `Opus`, `Sonnet`, or `Haiku`; omitted means Default. |
+| `profile add <NAME>` | `--model` / `-m`: provider/model; `--kind`: `claude`, `codex`, `opencode`, or `claude-design`; `--entry-mode`: `cli`, `app`, or `cli-and-app`; `--scope`: `launch` or `system`; `--executable` / `-x`: native executable; `--telemetry-endpoint URL`: opt-in native agent export. Shell wrappers are rejected. |
+| `profile edit <NAME>` | `--model`, `--kind`, `--entry-mode`, `--scope`, `--executable`, `--enabled` / `--disabled`, `--tier-opus`, `--tier-sonnet`, `--tier-haiku`, `--telemetry-endpoint`, or `--clear-telemetry`. |
+| `config token` | `--managed` / `-M`: separate credential of a verified running management service. |
+| `config validate`, `route preview` | `--file`: versioned settings JSON; `--project-root`: root-discovery starting directory; repeatable `--set KEY=VALUE`: nonpersistent typed overlay. Defaults to `AR_SETTINGS_FILE` or global settings file. |
+| `route preview` | Optional `--model`, `--agent`, `--task`, `--subagent`, `--workflow`, `--text`: synthetic request context, not authenticated client identity. |
+
+See [versioned settings](configuration.md#versioned-settings-and-preview) for precedence and activation limits. Preview's `--file`, `--set` and context options are not serve/service options; foreground `serve` has its separate `--settings-file` switch.
+
+Provider setup reads `OPENAI_API_KEY` by default, or prompts privately in an interactive terminal. For Anthropic, use `--protocol Anthropic --api-key-env ANTHROPIC_API_KEY` with the provider's endpoint and model names. There is no raw key option; never pass secret values on the command line. Options are command-scoped: `-p` selects management port under `service`, inference port under `serve`.
+
+### Removed Names
+
+This is a deliberate breaking CLI simplification. Update scripts; these old names now fail, rather than remaining hidden aliases. Saved configuration, credentials, environment variables and launcher filenames are unchanged.
+
+| Removed form | Use instead |
+| --- | --- |
+| `ar start`, `ar stop`, `ar web` | `ar service start`, `ar service stop`, `ar service serve` |
+| `ar gateway serve`, `ar s`, `ar run` | `ar serve` |
+| `ar gateway start`, `ar gateway stop`, `ar gateway restart` | `ar service resume`, `ar service pause`, `ar service reload` |
+| `ar gateway status` | `ar service status`; inspect inference state separately from management availability. |
+| `ar launch Review` | `ar profile launch Review` |
+| `ar provider use work/model` | `ar route set work/model` |
+| `ar status --managed` | `ar service status` |
+| `i`, `svc`, `gw`, `cfg`, `rt`, `p`, `pf` and abbreviated verbs | Full command names in the table above. |
+| Bare `ar` starting inference | `ar serve`; bare `ar` now shows help. |
 
 `serve --port` binds `127.0.0.1`. `--url` takes precedence and accepts an absolute HTTP(S) listener URL. Ports must be between `1` and `65535`. An HTTPS listener needs an appropriate ASP.NET Core certificate configuration.
 
-Restart inference after changing providers or routes: restart foreground `serve`, or run `stop` then `start`. There is no hot configuration reload yet. Reusing `start` reports the existing service and does not apply new flags or saved configuration.
+Restart inference after changing providers or routes: restart foreground `serve`, or run `ar service reload` for managed inference. There is no automatic hot configuration reload. Reusing `service start` does not change listener settings or reload running inference, but ensures inference starts when the existing service was management-only. `--no-gateway` on reuse does not stop an already running gateway.
+
+## Independent Model Controls
+
+These commands replace the old `gateway` CLI group without removing its features. They work only on inference hosted by a running service, not a standalone `ar serve` session. Examples below assume providers and routes are already configured. Output samples show relevant lines, not a guarantee that your ports match these examples.
+
+### Pause Without Stopping Management
+
+Use pause during maintenance when model requests should stop but configuration remains accessible.
+
+```powershell
+ar service start
+ar service pause
+# Inference: Stopped
+ar service status
+# Management: Running (http://127.0.0.1:49251)
+# Inference: Stopped
+```
+
+Pause drains active requests using the existing shutdown budget, then stops inference. After it completes, new model requests cannot connect to the inference listener. Management APIs remain available for configuration and status. The service PID and management identity do not change. It does not suspend agent processes or preserve upstream requests indefinitely.
+
+```powershell
+ar service resume
+# Inference: Running
+# Gateway: http://127.0.0.1:49250
+```
+
+Resume starts inference from saved settings. If inference is already running, it is reused; resume does not apply changed settings to that running instance. Use reload instead. Repeated pause is safe; pausing stopped inference leaves management running. A missing service or startup failure returns a nonzero exit code.
+
+### Apply Changes Without Restarting Management
+
+Use reload after changing saved providers, routes or inference port:
+
+```powershell
+ar route set work/gpt-4.1-mini --tier Haiku
+ar service reload
+ar service status
+```
+
+Reload validates replacement configuration before stopping existing inference. Invalid settings leave the old instance running. Valid settings trigger a draining restart: active requests finish within the drain budget, the old listener stops, and inference starts with saved settings. Management, its authentication token and process identity remain available throughout. Model handling can be briefly unavailable; this is not seamless hot reload or automatic rollback.
+
+If the replacement cannot bind or start, reload returns `1` and inference can remain stopped/failed. Correct saved settings and run `ar service resume` or `ar service reload`; management stays available. Reload starts inference even when previously paused. To keep it paused while editing configuration, wait to reload or resume until ready.
+
+### Readiness Versus Process Availability
+
+```powershell
+ar service status
+# Management: Running (http://127.0.0.1:49251)
+# Inference: Running
+# Gateway: http://127.0.0.1:49250
+# Service PID: <PID>
+```
+
+`Management: Running` means the authenticated local control process is available. `Inference: Running` means its inference listener is started; it does not prove the upstream model will succeed. Use the explicitly charged `provider check` only when you want a real upstream connectivity test.
+
+`Inference: Stopped` means model handling is intentionally stopped or not started. `Inference: Failed` means startup/reload failed; status also prints the sanitized lifecycle error. Both can coexist with healthy management. `service status` exits `0` when management is available, even if inference is not ready; it exits nonzero when management is missing or verification/query fails. Do not treat its exit code alone as inference readiness. Root `ar status` checks a standalone gateway's authenticated models endpoint instead.
+
+For a quick terminal session, use `ar serve` and Ctrl+C; service controls cannot pause or reload that standalone process. For foreground management or an external supervisor, use `ar service serve`; the same authenticated lifecycle controls remain available.
 
 ## Managed Lifecycle
 
-Management binds only `127.0.0.1`, defaults to port `49251`, and does not inherit ambient Kestrel listener configuration. `--management-port 0` selects a free port and prints the actual URL. Fixed-port conflicts fail rather than silently moving inference or management. `--no-gateway` starts management with no configured providers; omit it only after configuring inference.
+Management binds only `127.0.0.1`, defaults to port `49251`, and does not inherit ambient Kestrel listener configuration. `--management-port 0` selects a free port and prints the actual URL. Fixed-port conflicts fail rather than silently moving inference or management. `--no-gateway` starts management without inference. Default `service start` also keeps management available when saved providers are missing or inference fails; it reports the inference error. Exit `0` from `service start` means management is available, not that inference is ready. Use `service status` to inspect inference readiness. Pause/resume/reload exit `1` on lifecycle failure and do not restart management.
 
 ```powershell
-./agent-router.ps1 start --no-gateway --management-port 0
-./agent-router.ps1 status --managed
-./agent-router.ps1 stop
+./ar.ps1 service start --no-gateway --management-port 0
+./ar.ps1 service status
+./ar.ps1 service stop
 ```
 
 Startup waits at most 30 seconds for authenticated readiness. A shared file lock serializes start/stop/status. Runtime identity includes instance ID, PID, process start time, and version. State in `service.json` contains no token; per-instance management tokens use the existing encrypted secret store. Persistent empty `service.lock` and `config.lock` files are not indicators that a process is running.
 
-`stop` requests graceful shutdown and waits up to 10 seconds; it never falls back to killing an arbitrary PID. Startup failure terminates only the child started by that invocation. Dead or reused-PID state is cleaned on inspection. Malformed state or an unauthenticated live identity fails closed and needs operator investigation, not an automatic process kill. A foreground `web` process cannot replace an already-running managed instance.
+`service stop` requests graceful shutdown and waits up to 45 seconds, allowing inference up to 30 seconds to drain; it never falls back to killing an arbitrary PID. Management startup failure terminates only the child started by that invocation. Inference startup failure leaves management alive. Dead or reused-PID state is cleaned on inspection. Malformed state or an unauthenticated live identity fails closed and needs operator investigation, not an automatic process kill. A foreground `service serve` process cannot replace an already-running managed instance.
+
+Inference actions are serialized inside management. `service reload` builds and validates replacement configuration before stopping running inference. Invalid configuration leaves the old gateway running. A later bind/start failure can leave inference stopped; management remains available for correction and `service resume`. Reload also starts inference if it was stopped; it does not preserve a paused state. This is a draining restart, not zero-downtime replacement or automatic rollback. Lifecycle responses contain `state`, `url`, and sanitized `error`; `service.json` identifies the service and its startup URLs, while status commands query live inference state.
+
+Core lifecycle services and authenticated `/management/v1/gateway` APIs remain unchanged. Future Angular controls can use those APIs independently; Electron can supervise the same backend through `service serve`. Removing the CLI `gateway` group does not remove backend pause/start/restart capabilities or introduce a second gateway implementation.
 
 Windows subprocess integration tests verify detached output handles, foreground ownership, concurrent fresh starts, listener conflicts, and both-listener shutdown. Linux/macOS process lifecycle verification remains pending.
 
@@ -55,51 +181,74 @@ Every endpoint requires `Authorization: Bearer <management-token>`. Get that sen
 | --- | --- |
 | `GET /management/v1/identity` | Authenticated readiness and process identity. |
 | `GET /management/v1/config` | Dedicated configuration DTO: ports, active provider, safe provider/profile/route data, and credential-presence flags; no stored credential values. |
-| `GET /management/v1/providers` | Provider response DTOs with `hasApiKey`, never API-key values or suffixes. |
-| `POST /management/v1/providers/{id}` | Create enabled provider from `baseUrl`, `models`, `apiKey`, and optional `compatibility`. |
-| `PUT /management/v1/providers/{id}` | Update endpoint/models/protocol/enabled state; omitted or masked `apiKey` preserves existing key. |
+| `GET /management/v1/gateway` | Live inference state, listener URL, and sanitized last lifecycle error. |
+| `GET /management/v1/requests?limit=100` | Newest retained inference summaries, management token required; nullable usage/cost, limit 1..1000. |
+| `GET /management/v1/observability?hours=24` | Bounded request health, latency, token, route, and recent-activity metrics for the panel and CLI. |
+| `POST /management/v1/gateway/start` | Start saved inference configuration; `200` success, `409` configuration/startup failure. |
+| `POST /management/v1/gateway/stop` | Drain and stop inference without stopping management. |
+| `POST /management/v1/gateway/restart` | Validate configuration then replace inference; management identity remains unchanged. |
+| `GET /management/v1/providers` | Provider response DTOs with `HasApiKey`, never API-key values or suffixes. |
+| `POST /management/v1/providers/{id}` | Create enabled provider from `BaseUrl`, `Models`, `ApiKey`, and optional `Compatibility`. |
+| `PUT /management/v1/providers/{id}` | Update endpoint/models/protocol/enabled state; omitted or masked `ApiKey` preserves existing key. |
 | `DELETE /management/v1/providers/{id}` | Delete only unreferenced provider and its encrypted credentials. |
 | `GET /management/v1/profiles` | List isolated Claude CLI profile DTOs. |
-| `POST /management/v1/profiles/{name}` | Create enabled profile from optional `model` and `executable`. |
+| `POST /management/v1/profiles/{name}` | Create enabled profile from optional `Model` and `Executable`. |
 | `PUT /management/v1/profiles/{name}` | Update model, executable, and enabled state. |
 | `DELETE /management/v1/profiles/{name}` | Remove saved profile. |
-| `PUT /management/v1/routes/{tier}` | Assign `model` selector to Default/Opus/Sonnet/Haiku tier. |
+| `PUT /management/v1/routes/{tier}` | Assign `Model` selector to Default/Opus/Sonnet/Haiku tier. |
 | `POST /management/v1/shutdown` | Stop authenticated managed instance and its optional inference listener. |
 | `GET /management/v1/openapi/management-v1.json` | Authenticated OpenAPI document with request/response schemas. |
 
 Creation returns `201`, updates/deletes `204`, malformed configuration `400`, missing resources `404`, and duplicates/dependency conflicts `409`. Management bodies are limited to 1 MiB. Provider deletion and removal of referenced models are refused until routes/profiles are reassigned. CLI and management mutations share a cross-process configuration lock; direct storage consumers must coordinate separately. Optimistic concurrency and one transaction spanning configuration and secrets remain future work.
 
-`restartRequired` documents the restart-to-apply policy; it does not measure differences against the running inference snapshot. Angular UI, automatic browser opening, management-driven agent launch, and in-place inference restart remain pending.
+`RestartRequired` documents the restart-to-apply policy; it does not measure differences against the running inference snapshot. Management properties use PascalCase; older request property casing remains accepted. The Angular UI supports profile CRUD and the same kind, model, executable, entry mode, scope, tier, enabled, and telemetry fields. Browser-triggered local agent launch remains unavailable.
 
 ## Examples
 
 ```powershell
-./agent-router.ps1 init --port 4600
+./ar.ps1 init --port 4600
 # Set OPENAI_API_KEY privately, or let provider add prompt for it.
-./agent-router.ps1 provider add work --base-url https://api.openai.com/v1 --models gpt-4.1,gpt-4.1-mini
-./agent-router.ps1 provider use work/gpt-4.1
-./agent-router.ps1 provider use work/gpt-4.1-mini --tier Haiku
-./agent-router.ps1 profile add Review --model work/gpt-4.1
-./agent-router.ps1 serve
+./ar.ps1 provider add work --base-url https://api.openai.com/v1 --models gpt-4.1,gpt-4.1-mini
+./ar.ps1 route set work/gpt-4.1
+./ar.ps1 route set work/gpt-4.1-mini --tier Haiku
+./ar.ps1 profile add Review --model work/gpt-4.1
+./ar.ps1 serve
 ```
 
 In another terminal:
 
 ```powershell
-./agent-router.ps1 status
-./agent-router.ps1 launch Review -- --permission-mode plan
+./ar.ps1 status
+./ar.ps1 profile launch Review -- --permission-mode plan
 ```
 
 On macOS/Linux use `bash ./ar`; packaged installations use `ar`.
 
+To keep the configured gateway running in the background instead of using `serve`:
+
+```powershell
+ar service start
+ar service status
+ar profile launch Review -- --permission-mode plan
+ar service pause
+ar service resume
+ar service reload
+ar service status
+ar service stop
+```
+
 ## Launch Isolation
 
-`launch` sets `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, model, and configured tier overrides only on the child process. It removes inherited `ANTHROPIC_API_KEY` from that process, preserves individual arguments, and returns the agent exit code. Parent environment and global Claude settings remain unchanged.
+`profile launch` sets `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, model, and configured tier overrides only on the child process. It removes inherited `ANTHROPIC_API_KEY` from that process, preserves individual arguments, and returns the agent exit code. Parent environment and global Claude settings remain unchanged.
 
-Only absolute loopback HTTP(S) gateway URLs without credentials, paths, queries, or fragments are accepted for profile launches. Remote profile launching, Codex/OpenCode profiles, and desktop app launching are not implemented.
+Only absolute loopback HTTP(S) gateway URLs without credentials, paths, queries, or fragments are accepted. Remote launches, OpenCode and desktop app launching are not implemented.
+
+`profile add NAME --kind codex --model PROVIDER/MODEL` saves experimental Codex launch settings. The child receives a custom Responses provider through argument-list TOML overrides and its inference token through `AR_AGENT_TOKEN`, not command arguments. Windows resolves the known npm native binary layout instead of running a shell wrapper; provide a native path for other layouts. Global Codex files remain unchanged, but existing user/project configuration still loads: this is not a separate `CODEX_HOME`. Text reasoning output/history is supported; reasoning-effort controls, custom tools, and continuations are not. Ordinary Codex sessions are not yet certified. See [agents](../guide/agents.md) and [protocol compatibility](../integrations.md).
+
+Optional `--telemetry-endpoint URL` configures native Claude/Codex exporters only in the child. Use a root HTTPS URL or loopback HTTP, without credentials, path, query or fragment. Claude enables native OTLP logs/metrics and enhanced beta tracing with prompt/tool-content capture flags disabled. Codex receives per-signal HTTP/JSON exporter overrides and disables user-prompt logging; this does not establish redaction of every native tool-event field. Agent versions, inherited configuration merging, actual delivery and correlation still need conformance checks. The gateway does not ingest or redact these events. Configure collector access, redaction and retention before enabling native export.
 
 ## Security
 
 `config token` output is a credential: do not paste it into logs, screenshots, or tickets. It is separate from upstream provider keys. Clients authenticate using `x-api-key` or `Authorization: Bearer`; an arbitrary non-empty token is not accepted by the configured gateway.
 
-Use loopback listeners for local work. Remote listeners require firewall/private-network controls and TLS; they do not make `launch` support remote gateways. Protect the storage directory and backups, which contain encrypted credentials and their local key material.
+Use loopback listeners for local work. Remote listeners require firewall/private-network controls and TLS; they do not make `profile launch` support remote gateways. Protect the storage directory and backups, which contain encrypted credentials and their local key material.

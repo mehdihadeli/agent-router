@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-
-namespace AgentRouter.Shared.Configuration;
+namespace AgentRouter.Core.Hosting;
 
 /// <summary>
 /// Minimal .env loader (KEY=VALUE) with $VAR / ${VAR} interpolation on values.

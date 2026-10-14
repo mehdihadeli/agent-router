@@ -1,17 +1,13 @@
-using AgentRouter.Shared.AIProviders.Azure;
-using AgentRouter.Shared.AIProviders.OpenAI;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Constants;
-using AgentRouter.Shared.Contracts;
-using AgentRouter.Shared.Routes;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using AgentRouter.Core.Constants;
+using AgentRouter.Core.Hosting;
+using AgentRouter.Core.Providers.Anthropic;
+using AgentRouter.Core.Providers.Azure;
+using AgentRouter.Core.Providers.DeepSeek;
+using AgentRouter.Core.Providers.OpenAI;
+using AgentRouter.Core.Routes;
 using Microsoft.Extensions.AI;
-using Anthropic;
-using Anthropic.Core;
 
-namespace AgentRouter.Shared.AIProviders;
+namespace AgentRouter.Core.Providers;
 
 public static class ClientExtensions
 {
@@ -29,6 +25,9 @@ public static class ClientExtensions
         options = runtimeOptions ?? options;
 
         ArgumentNullException.ThrowIfNull(options.RouteModel);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxProviderAttempts, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MaxProviderAttempts, 8);
+        GatewayResilience.Register(builder.Services, options);
 
         // Bind ClaudeGatewayOptions from the flat root keys loaded from ~/agent-router/config.json.
         // Our user config is flat (GatewayBaseAddress, DefaultProviderType, DefaultModel, Providers, ...),
@@ -49,6 +48,9 @@ public static class ClientExtensions
                         opt.TierRoutes = runtimeOptions.TierRoutes;
                         opt.GatewayBaseAddress = runtimeOptions.GatewayBaseAddress;
                         opt.EnableTelemetry = runtimeOptions.EnableTelemetry;
+                        opt.RequestTimeoutSeconds = runtimeOptions.RequestTimeoutSeconds;
+                        opt.MaxProviderAttempts = runtimeOptions.MaxProviderAttempts;
+                        opt.RoutingSettings = runtimeOptions.RoutingSettings;
                         opt.GitBashPath = runtimeOptions.GitBashPath;
                     }
                 }
@@ -60,9 +62,18 @@ public static class ClientExtensions
         // The key is the provider's logical name (ProviderName) when present, otherwise ProviderType (e.g. "azure").
         foreach (var provider in options.Providers)
         {
-            if (provider.ProviderType is not (ProviderType.OpenAI or ProviderType.Azure
-                or ProviderType.GitHubModels or ProviderType.Anthropic))
-                throw new NotSupportedException($"Provider type '{provider.ProviderType}' is not supported.");
+            if (
+                provider.ProviderType
+                is not (
+                    ProviderType.OpenAI
+                    or ProviderType.Azure
+                    or ProviderType.GitHubModels
+                    or ProviderType.Anthropic
+                )
+            )
+                throw new NotSupportedException(
+                    $"Provider type '{provider.ProviderType}' is not supported."
+                );
             foreach (var providerModel in provider.Models)
             {
                 // like `azure/gpt-4.1`, `azure/gpt-4`
@@ -74,17 +85,14 @@ public static class ClientExtensions
                 switch (provider.ProviderType)
                 {
                     case ProviderType.Anthropic:
-                        var pipeline = builder.Services.AddKeyedChatClient(providerModelKey, _ =>
-                            new AnthropicClient(new ClientOptions
-                            {
-                                ApiKey = provider.ApiKey,
-                                BaseUrl = provider.BaseAddress,
-                                MaxRetries = 0,
-                            }).AsIChatClient(defaultModelId: providerModel, defaultMaxOutputTokens: 1024));
-                        if (options.EnableTelemetry)
-                            pipeline.UseOpenTelemetry(sourceName: "Experimental.Microsoft.Extensions.AI", configure: telemetry =>
-                                telemetry.EnableSensitiveData = builder.Configuration.GetValue<bool>("Telemetry:EnableSensitiveData"));
-                        pipeline.UseLogging();
+                        AnthropicProvider.Register(
+                            builder,
+                            provider,
+                            providerModel,
+                            providerModelKey,
+                            options.EnableTelemetry,
+                            1
+                        );
                         break;
                     case ProviderType.Azure:
                         RegisterAzureAI(
@@ -94,7 +102,8 @@ public static class ClientExtensions
                             deploymentName: providerModel,
                             model: providerModel,
                             enableTelemetry: options.EnableTelemetry,
-                            providerModelKey
+                            providerModelKey,
+                            maxProviderAttempts: 1
                         );
                         break;
 
@@ -106,7 +115,8 @@ public static class ClientExtensions
                             deploymentName: providerModel,
                             model: providerModel,
                             enableTelemetry: options.EnableTelemetry,
-                            providerModelKey
+                            providerModelKey,
+                            maxProviderAttempts: 1
                         );
                         break;
 
@@ -117,7 +127,8 @@ public static class ClientExtensions
                             apiKey: provider.ApiKey,
                             model: providerModel,
                             enableTelemetry: options.EnableTelemetry,
-                            providerModelKey
+                            providerModelKey,
+                            maxProviderAttempts: 1
                         );
                         break;
                 }
@@ -125,20 +136,44 @@ public static class ClientExtensions
         }
 
         // register rout model providers
-        RegisterRoute(builder.Services, options, RouteModelKeys.Default, options.RouteModel.DefaultModel);
-        RegisterRoute(builder.Services, options, RouteModelKeys.Thinking, options.RouteModel.ThinkingModel);
-        RegisterRoute(builder.Services, options, RouteModelKeys.Search, options.RouteModel.SearchModel);
-        builder.Services.AddSingleton(services => services.GetRequiredKeyedService<IChatClient>(RouteModelKeys.Default));
+        RegisterRoute(
+            builder.Services,
+            options,
+            RouteModelKeys.Default,
+            options.RouteModel.DefaultModel
+        );
+        RegisterRoute(
+            builder.Services,
+            options,
+            RouteModelKeys.Thinking,
+            options.RouteModel.ThinkingModel
+        );
+        RegisterRoute(
+            builder.Services,
+            options,
+            RouteModelKeys.Search,
+            options.RouteModel.SearchModel
+        );
+        builder.Services.AddSingleton(services =>
+            services.GetRequiredKeyedService<IChatClient>(RouteModelKeys.Default)
+        );
 
         return builder;
     }
 
-    private static void RegisterRoute(IServiceCollection services, ClaudeGatewayOptions options, string key, string route)
+    private static void RegisterRoute(
+        IServiceCollection services,
+        ClaudeGatewayOptions options,
+        string key,
+        string route
+    )
     {
         var resolved = RouteModelFactory.Resolve(options, route);
         var providerKey = RouteModelFactory.GetProviderModelName(resolved.Provider, resolved.Model);
-        services.AddKeyedSingleton<IChatClient>(key,
-            (provider, _) => provider.GetRequiredKeyedService<IChatClient>(providerKey));
+        services.AddKeyedSingleton<IChatClient>(
+            key,
+            (provider, _) => provider.GetRequiredKeyedService<IChatClient>(providerKey)
+        );
     }
 
     private static void RegisterGitHubModels(
@@ -147,7 +182,8 @@ public static class ClientExtensions
         string apiKey,
         string model,
         bool enableTelemetry,
-        object? providerModelKey = null
+        object? providerModelKey = null,
+        int maxProviderAttempts = 1
     )
     {
         var endpoint = string.IsNullOrWhiteSpace(baseAddress)
@@ -162,7 +198,8 @@ public static class ClientExtensions
             deploymentName: model,
             model: model,
             enableTelemetry: enableTelemetry,
-            providerModelKey: providerModelKey
+            providerModelKey: providerModelKey,
+            maxProviderAttempts: maxProviderAttempts
         );
     }
 
@@ -173,7 +210,8 @@ public static class ClientExtensions
         string deploymentName,
         string model,
         bool enableTelemetry,
-        object? providerModelKey = null
+        object? providerModelKey = null,
+        int maxProviderAttempts = 1
     )
     {
         // https://learn.microsoft.com/en-us/semantic-kernel/concepts/ai-services/chat-completion/?tabs=csharp-AzureOpenAI%2Cpython-AzureOpenAI%2Cjava-AzureOpenAI&pivots=programming-language-csharp
@@ -189,7 +227,8 @@ public static class ClientExtensions
                 DisableTracing = !enableTelemetry,
             },
             // register with a keyed service provider with `ProviderType` as a key
-            serviceKey: providerModelKey
+            serviceKey: providerModelKey,
+            maxProviderAttempts: maxProviderAttempts
         );
 
         // https://learn.microsoft.com/en-us/dotnet/ai/dotnet-ai-ecosystem#semantic-kernel-for-net
@@ -198,7 +237,9 @@ public static class ClientExtensions
             deploymentName: deploymentName,
             model: model,
             configureOpenTelemetry: otel =>
-                otel.EnableSensitiveData = builder.Configuration.GetValue<bool>("Telemetry:EnableSensitiveData")
+                otel.EnableSensitiveData = builder.Configuration.GetValue<bool>(
+                    "Telemetry:EnableSensitiveData"
+                )
         );
     }
 
@@ -209,7 +250,8 @@ public static class ClientExtensions
         string deploymentName,
         string model,
         bool enableTelemetry,
-        object? providerModelKey = null
+        object? providerModelKey = null,
+        int maxProviderAttempts = 1
     )
     {
         // https://learn.microsoft.com/en-us/semantic-kernel/concepts/ai-services/chat-completion/?tabs=csharp-OpenAI%2Cpython-AzureOpenAI%2Cjava-AzureOpenAI&pivots=programming-language-csharp
@@ -222,9 +264,11 @@ public static class ClientExtensions
                 ApiKey = apiKey,
                 Endpoint = baseAddress,
                 DisableTracing = !enableTelemetry,
+                ConfigureClient = DeepSeekToolPolicy.ConfigureClient,
             },
             // register with a keyed service provider with `ProviderType` as a key
-            serviceKey: providerModelKey
+            serviceKey: providerModelKey,
+            maxProviderAttempts: maxProviderAttempts
         );
 
         // https://learn.microsoft.com/en-us/dotnet/ai/dotnet-ai-ecosystem#semantic-kernel-for-net
@@ -233,7 +277,9 @@ public static class ClientExtensions
             deploymentName: deploymentName,
             model: model,
             configureOpenTelemetry: otel =>
-                otel.EnableSensitiveData = builder.Configuration.GetValue<bool>("Telemetry:EnableSensitiveData")
+                otel.EnableSensitiveData = builder.Configuration.GetValue<bool>(
+                    "Telemetry:EnableSensitiveData"
+                )
         );
     }
 }

@@ -1,13 +1,13 @@
-using AgentRouter.Shared.AIProviders;
-using AgentRouter.Shared.Configuration;
-using AgentRouter.Shared.Contracts;
-using AgentRouter.Shared.Routes;
+using AgentRouter.Core;
+using AgentRouter.Core.Contracts;
+using AgentRouter.Core.Providers;
+using AgentRouter.Core.Routes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace AgentRouter.Providers.OpenAI.Tests;
+namespace AgentRouter.Core.Tests.Unit.Providers;
 
 public class ProviderRegistrationTests
 {
@@ -21,17 +21,45 @@ public class ProviderRegistrationTests
     public void NamedProvidersAndRouteAliases_ResolveCorrectClient()
     {
         var builder = Host.CreateApplicationBuilder();
-        builder.AddAIProviderChatClient(new ClaudeGatewayOptions
-        {
-            EnableTelemetry = false,
-            Providers =
-            [
-                new ClaudeGatewayProvider { ProviderName = "first", ProviderType = ProviderType.OpenAI, BaseAddress = "https://first.test/v1", ApiKey = "first-key", Models = ["shared"] },
-                new ClaudeGatewayProvider { ProviderName = "second", ProviderType = ProviderType.OpenAI, BaseAddress = "https://second.test/v1", ApiKey = "second-key", Models = ["shared"] },
-                new ClaudeGatewayProvider { ProviderName = "claude", ProviderType = ProviderType.Anthropic, BaseAddress = "https://anthropic.test", ApiKey = "anthropic-key", Models = ["native"] },
-            ],
-            RouteModel = new RouteModel { DefaultModel = "second/shared", ThinkingModel = "claude/native", SearchModel = "first/shared" },
-        });
+        builder.AddAIProviderChatClient(
+            new ClaudeGatewayOptions
+            {
+                EnableTelemetry = false,
+                Providers =
+                [
+                    new ClaudeGatewayProvider
+                    {
+                        ProviderName = "first",
+                        ProviderType = ProviderType.OpenAI,
+                        BaseAddress = "https://first.test/v1",
+                        ApiKey = "first-key",
+                        Models = ["shared"],
+                    },
+                    new ClaudeGatewayProvider
+                    {
+                        ProviderName = "second",
+                        ProviderType = ProviderType.OpenAI,
+                        BaseAddress = "https://second.test/v1",
+                        ApiKey = "second-key",
+                        Models = ["shared"],
+                    },
+                    new ClaudeGatewayProvider
+                    {
+                        ProviderName = "claude",
+                        ProviderType = ProviderType.Anthropic,
+                        BaseAddress = "https://anthropic.test",
+                        ApiKey = "anthropic-key",
+                        Models = ["native"],
+                    },
+                ],
+                RouteModel = new RouteModel
+                {
+                    DefaultModel = "second/shared",
+                    ThinkingModel = "claude/native",
+                    SearchModel = "first/shared",
+                },
+            }
+        );
         using var host = builder.Build();
         var first = host.Services.GetRequiredKeyedService<IChatClient>("first/shared");
         var second = host.Services.GetRequiredKeyedService<IChatClient>("second/shared");
@@ -47,10 +75,28 @@ public class ProviderRegistrationTests
     public void UnsupportedProviderType_FailsAtRegistration()
     {
         var builder = Host.CreateApplicationBuilder();
-        Assert.Throws<NotSupportedException>(() => builder.AddAIProviderChatClient(new ClaudeGatewayOptions
-        {
-            Providers = [new ClaudeGatewayProvider { ProviderType = ProviderType.Ollama, BaseAddress = "http://localhost:11434", ApiKey = "key", Models = ["model"] }],
-            RouteModel = new RouteModel { DefaultModel = "ollama/model", ThinkingModel = "ollama/model", SearchModel = "ollama/model" },
-        }));
+        Assert.Throws<NotSupportedException>(() =>
+            builder.AddAIProviderChatClient(
+                new ClaudeGatewayOptions
+                {
+                    Providers =
+                    [
+                        new ClaudeGatewayProvider
+                        {
+                            ProviderType = ProviderType.Ollama,
+                            BaseAddress = "http://localhost:11434",
+                            ApiKey = "key",
+                            Models = ["model"],
+                        },
+                    ],
+                    RouteModel = new RouteModel
+                    {
+                        DefaultModel = "ollama/model",
+                        ThinkingModel = "ollama/model",
+                        SearchModel = "ollama/model",
+                    },
+                }
+            )
+        );
     }
 }

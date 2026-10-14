@@ -1,37 +1,33 @@
-# Integrations
+# Protocol Compatibility
 
-The current integration boundary is:
+The client protocol and upstream provider protocol are separate choices. An agent can use Anthropic Messages while AgentRouter sends OpenAI Chat Completions to the selected provider. Provider and model names do not establish protocol compatibility.
 
-```text
-Claude Code or Anthropic client
-        |
-        v
-AgentRouter.Api
-        |
-        v
-Claude/OpenAI/Gemini translation layer
-        |
-        v
-Microsoft.Extensions.AI
-        |
-        v
-OpenAI-compatible provider
-```
+## Client APIs
 
-## Client side
+| Endpoint | Supported behavior |
+| --- | --- |
+| `POST /v1/messages` | Anthropic-style text, system instructions, function tools and results; JSON and SSE. |
+| `POST /v1/responses` | Stateless text, function tools and results, and text reasoning output/history; JSON and SSE. See the limits below. |
+| `GET /v1/models` | Configured enabled models. This does not discover models from providers. |
 
-Supported clients speak the Anthropic Messages API, including Claude Code and compatible Anthropic SDK clients.
+Inference uses the gateway token, not the upstream API key. See [agent setup](guide/agents.md).
 
-## Provider side
+## Upstream APIs
 
-Current provider registrations support:
+| Provider transport | Availability |
+| --- | --- |
+| OpenAI Chat Completions | Supported through the OpenAI SDK, including configured compatible endpoints. |
+| Anthropic Messages | Supported through the native Anthropic SDK. |
+| Azure OpenAI | Existing Azure adapter; deployment and endpoint must match your resource. |
+| GitHub Models | Existing GitHub adapter; model access depends on your account. |
+| Native OpenAI Responses or Gemini | Not implemented as upstream transports. |
 
-- OpenAI-compatible endpoints.
-- Azure OpenAI.
-- GitHub Models.
+OpenRouter, DeepSeek, Z.AI and other compatible services need an endpoint, protocol, and exact model ID that support your workload. Text success alone does not prove streaming or tool compatibility. Provider checks send a real request and may incur charges. See [providers](guide/providers.md).
 
-The gateway translates requests and responses between Claude, OpenAI, and Gemini formats. SSE streaming and tool definitions/function calls are preserved across the translation boundary.
+## Responses And Codex Limits
 
-Provider registration belongs in `src/AgentRouter.Providers.OpenAI`. Protocol conversion belongs in `src/AgentRouter.Api`. Route and configuration policy belongs in `src/AgentRouter.Core` and `src/AgentRouter.Hosting`.
+Send full history with `store=false`. Stored continuations, `previous_response_id`, background responses, reasoning-effort controls, nonempty reasoning summaries, strict schema enforcement, multimodal content, and custom/grammar/hosted tools are not supported. Unsupported request fields are rejected.
 
-The `/v1/models` integration provides cached model discovery with on-demand refresh. Usage statistics are updated from events and can be queried for today, yesterday, this week, or this month.
+Opaque reasoning history is provider-specific; do not treat it as portable continuation state. The experimental Codex launcher and this Responses subset do not establish support for every Codex workflow, including custom patch tools.
+
+Tool execution stays in the client. AgentRouter does not run tools, rewrite local files, provide MCP aggregation, or synthesize agent execution traces. See [observability](guide/observability.md) for telemetry boundaries and [agent profiles](reference/agent-profiles.md) for launcher limits.

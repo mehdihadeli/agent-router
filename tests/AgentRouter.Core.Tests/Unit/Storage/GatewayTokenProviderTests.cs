@@ -1,8 +1,8 @@
-using AgentRouter.Contracts.Defaults;
-using AgentRouter.Storage.Secrets;
+using AgentRouter.Core.Contracts.Defaults;
+using AgentRouter.Core.Tests.Support.Storage;
 using Xunit;
 
-namespace AgentRouter.Tests;
+namespace AgentRouter.Core.Tests.Unit.Storage;
 
 public class GatewayTokenProviderTests
 {

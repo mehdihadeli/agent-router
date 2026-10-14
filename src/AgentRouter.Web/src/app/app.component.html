@@ -1,0 +1,36 @@
+@if (!api.authenticated()) {
+  <ar-pairing [loading]="loading()" />
+} @else {
+  <div class="min-h-dvh md:grid md:grid-cols-[215px_minmax(0,1fr)]">
+    <aside class="flex border-b border-zinc-200 bg-white p-4 pb-0 md:sticky md:top-0 md:h-dvh md:flex-col md:border-r md:border-b-0 md:p-5 max-md:flex-col">
+      <a class="flex items-center gap-3 text-lg font-bold text-zinc-800 no-underline" href="/ui/" aria-label="AgentRouter overview"><img src="mark.svg" width="32" height="32" alt="">AgentRouter</a>
+      <div class="mt-8 mb-8 hidden items-center gap-2 rounded-md border border-zinc-200 p-3 text-xs text-zinc-500 md:flex"><span class="status-dot"></span>Local workspace<span class="ml-auto text-[9px]">LOCAL</span></div>
+      <div class="mb-3 hidden px-3 text-[10px] font-bold text-zinc-400 md:block">MANAGEMENT</div>
+      <nav class="mt-4 flex gap-1 overflow-x-auto pb-3 md:mt-0 md:grid md:overflow-visible" aria-label="Main navigation">
+        @for (item of navigation; track item.name) {
+          <button type="button" class="nav-button" [class.active]="view() === item.name" [attr.aria-current]="view() === item.name ? 'page' : null" [disabled]="workspace.busy()" (click)="view.set(item.name)"><lucide-icon class="max-md:hidden" [name]="item.icon" [size]="18" /><span>{{ item.name }}</span></button>
+        }
+      </nav>
+      <div class="mt-auto hidden border-t border-zinc-200 pt-4 md:block"><div class="mb-2 flex items-center gap-2 px-3 text-xs text-zinc-500"><span class="status-dot" [class.stopped]="workspace.gateway()?.State !== 'Running'"></span>Inference {{ workspace.gateway()?.State ?? 'Stopped' }}</div><button type="button" class="w-full justify-start text-xs text-zinc-500" (click)="disconnect()" [disabled]="workspace.busy()"><lucide-icon name="log-out" [size]="16" />Disconnect</button></div>
+    </aside>
+    <div class="min-w-0">
+      <header class="flex h-16 items-center justify-between gap-3 border-b border-zinc-200 bg-white px-5 md:px-9"><div class="flex items-center gap-3 text-xs text-zinc-400">Workspace<lucide-icon name="chevron-right" [size]="14" /><strong class="font-medium text-zinc-600">{{ view() }}</strong></div><div class="flex items-center gap-2"><span class="hidden items-center gap-2 text-xs text-zinc-500 sm:flex"><span class="status-dot"></span>Connected</span><button class="icon-button" type="button" title="Refresh workspace" aria-label="Refresh workspace" (click)="workspace.run(workspace.refresh.bind(workspace))" [disabled]="workspace.busy()"><lucide-icon name="refresh-cw" [size]="17" /></button><button class="icon-button md:hidden" type="button" title="Disconnect browser" aria-label="Disconnect browser" (click)="disconnect()" [disabled]="workspace.busy()"><lucide-icon name="log-out" [size]="17" /></button></div></header>
+      <main class="mx-auto max-w-7xl px-5 py-8 md:px-9 xl:px-12" id="main-content">
+        <div class="mb-7"><div class="mb-2 text-[10px] font-bold text-zinc-400">YOUR MODEL WORKSPACE</div><h1 class="wrap-anywhere text-3xl font-bold">{{ view() }}</h1></div>
+        @if (workspace.error()) { <div class="banner border border-red-100 bg-red-50 text-red-700" role="alert">{{ workspace.error() }}<button class="icon-button" type="button" aria-label="Dismiss error" (click)="workspace.error.set('')"><lucide-icon name="x" [size]="16" /></button></div> }
+        @if (workspace.notice()) { <div class="banner justify-start bg-emerald-50 text-emerald-800" role="status"><lucide-icon name="check" [size]="16" />{{ workspace.notice() }}</div> }
+        @if (workspace.savedChanges()) { <div class="banner flex-wrap border border-amber-100 bg-amber-50 text-amber-800"><span>Saved changes have not been applied by this browser session.</span><button type="button" class="secondary text-xs" (click)="workspace.control('restart')" [disabled]="workspace.busy()">Apply & restart<lucide-icon name="refresh-cw" [size]="14" /></button></div> }
+        @if (workspace.config()) {
+          @switch (view()) {
+            @case ('Overview') { <ar-overview (manageProviders)="view.set('Providers')" (manageRouting)="view.set('Routing')" /> }
+            @case ('Providers') { <ar-providers /> }
+            @case ('Routing') { <ar-routing /> }
+            @case ('Profiles') { <ar-profiles /> }
+            @case ('Requests') { <ar-requests /> }
+          }
+        } @else { <div class="empty-state"><lucide-icon name="refresh-cw" [size]="26" /><h2>{{ workspace.error() ? 'Workspace unavailable' : 'Loading workspace...' }}</h2><button class="secondary" type="button" (click)="workspace.run(workspace.refresh.bind(workspace))" [disabled]="workspace.busy()">Retry</button></div> }
+        <footer class="mt-12 flex flex-wrap justify-between gap-4 border-t border-zinc-200 pt-5 text-[10px] text-zinc-400"><span class="font-bold">AgentRouter</span><span>Local management · Encrypted credentials</span></footer>
+      </main>
+    </div>
+  </div>
+}

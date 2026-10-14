@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace AgentRouter.Models.Anthropic;
+namespace AgentRouter.Core.Api.Models.Anthropic;
 
 public sealed class SystemPromptConverter : JsonConverter<SystemPrompt>
 {

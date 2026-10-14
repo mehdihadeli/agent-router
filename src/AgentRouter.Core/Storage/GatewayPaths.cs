@@ -1,6 +1,6 @@
-using AgentRouter.Contracts.Defaults;
+﻿using AgentRouter.Core.Contracts.Defaults;
 
-namespace AgentRouter.Storage;
+namespace AgentRouter.Core.Storage;
 
 /// <summary>
 /// Resolves every filesystem location the gateway owns: the SQLite database, the master key,
@@ -8,7 +8,7 @@ namespace AgentRouter.Storage;
 /// </summary>
 public sealed class GatewayPaths
 {
-    private const string ApplicationFolderName = "claude-code-gateway";
+    private const string ApplicationFolderName = ".agent-router";
 
     public GatewayPaths(string rootDirectory)
     {
@@ -21,6 +21,8 @@ public sealed class GatewayPaths
 
     public string DatabasePath => Path.Combine(RootDirectory, "gateway.sqlite");
 
+    public string ConfigPath => Path.Combine(RootDirectory, "config.json");
+
     public string MasterKeyPath => Path.Combine(RootDirectory, "secret.key");
 
     public string ProviderLogoDirectory => Path.Combine(RootDirectory, "provider-logos");
@@ -31,7 +33,7 @@ public sealed class GatewayPaths
 
     /// <summary>
     /// Resolves the gateway data directory. Precedence: explicit override, then
-    /// <c>CC_GATEWAY_CONFIG_DIR</c>, then the OS configuration directory.
+    /// <c>AR_CONFIG_DIR</c>, then .agent-router inside the user profile directory.
     /// </summary>
     public static GatewayPaths Resolve(string? overrideDirectory = null)
     {
@@ -50,27 +52,21 @@ public sealed class GatewayPaths
 
     private static string GetDefaultRootDirectory()
     {
-        if (OperatingSystem.IsWindows())
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(home))
         {
-            var appData = Environment.GetEnvironmentVariable("APPDATA");
-            if (!string.IsNullOrWhiteSpace(appData))
-            {
-                return Path.Combine(appData, ApplicationFolderName);
-            }
+            home = Environment.GetEnvironmentVariable(
+                OperatingSystem.IsWindows() ? "USERPROFILE" : "HOME"
+            );
+        }
+        if (string.IsNullOrWhiteSpace(home))
+        {
+            throw new InvalidOperationException(
+                "Cannot resolve the user profile directory. Set AR_CONFIG_DIR explicitly."
+            );
         }
 
-        var xdgConfig = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (!string.IsNullOrWhiteSpace(xdgConfig))
-        {
-            return Path.Combine(xdgConfig, ApplicationFolderName);
-        }
-
-        var home =
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-            ?? Environment.GetEnvironmentVariable("HOME")
-            ?? Directory.GetCurrentDirectory();
-
-        return Path.Combine(home, ".config", ApplicationFolderName);
+        return Path.Combine(home, ApplicationFolderName);
     }
 
     /// <summary>Creates the root data directory when it does not exist yet.</summary>
