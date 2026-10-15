@@ -1,5 +1,7 @@
 # AgentRouter
 
+<p><img src="assets/agent-router-mark.svg" alt="AgentRouter logo" width="64"></p>
+
 [![BuildTestPublish](https://img.shields.io/github/actions/workflow/status/mehdihadeli/agent-router/build-and-publish.yml?branch=main&style=for-the-badge&label=BuildTestPublish)](https://github.com/mehdihadeli/agent-router/actions/workflows/build-and-publish.yml)
 [![License](https://img.shields.io/github/license/mehdihadeli/agent-router?style=for-the-badge)](https://github.com/mehdihadeli/agent-router)
 [![.NET](https://img.shields.io/badge/.NET%2010-512bd4?style=for-the-badge)](https://dotnet.microsoft.com/platform/dotnet)
