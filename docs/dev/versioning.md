@@ -172,7 +172,7 @@ Every version-calculating job checks out full history:
 The workflow uses these stages:
 
 1. `build-test` restores, builds, and tests the solution.
-2. `calculate-version` runs [`calculate-version.sh`](../../scripts/calculate-version.sh),
+2. `calculate-version` runs [`calculate-version.sh`](https://github.com/mehdihadeli/agent-router/blob/main/scripts/calculate-version.sh),
   validates release tags, and selects the effective package version and release
   intent label.
 3. `publish` packs `AgentRouter`, pushes it to NuGet.org, builds executable

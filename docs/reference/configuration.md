@@ -301,7 +301,7 @@ Caller cancellation and the full-stream deadline remain linked after priming. Ne
 
 ## Legacy Host Options
 
-Primary runtime options are defined in [src/AgentRouter.Core/ClaudeGatewayOptions.cs](../../src/AgentRouter.Core/ClaudeGatewayOptions.cs). When no saved providers exist, existing configuration sources remain available.
+Primary runtime options are defined in [`ClaudeGatewayOptions.cs`](https://github.com/mehdihadeli/agent-router/blob/main/src/AgentRouter.Core/ClaudeGatewayOptions.cs). When no saved providers exist, existing configuration sources remain available.
 
 Namespace ownership:
 
