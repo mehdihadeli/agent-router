@@ -1,7 +1,7 @@
 # AgentRouter
 
-[![BuildTestPublish](https://img.shields.io/github/actions/workflow/status/mehdihadeli/claude-code-gateway/build-and-publish.yml?branch=main&style=for-the-badge&label=BuildTestPublish)](https://github.com/mehdihadeli/claude-code-gateway/actions/workflows/build-and-publish.yml)
-[![License](https://img.shields.io/github/license/mehdihadeli/claude-code-gateway?style=for-the-badge)](https://github.com/mehdihadeli/claude-code-gateway)
+[![BuildTestPublish](https://img.shields.io/github/actions/workflow/status/mehdihadeli/agent-router/build-and-publish.yml?branch=main&style=for-the-badge&label=BuildTestPublish)](https://github.com/mehdihadeli/agent-router/actions/workflows/build-and-publish.yml)
+[![License](https://img.shields.io/github/license/mehdihadeli/agent-router?style=for-the-badge)](https://github.com/mehdihadeli/agent-router)
 [![.NET](https://img.shields.io/badge/.NET%2010-512bd4?style=for-the-badge)](https://dotnet.microsoft.com/platform/dotnet)
 [![AgentRouter](https://img.shields.io/nuget/v/AgentRouter?style=for-the-badge&color=blue&label=AgentRouter)](https://www.nuget.org/packages/AgentRouter)
 
@@ -258,6 +258,7 @@ Saved configuration is stored separately from the tool installation. Uninstallin
 | Select models, rules, and fallback | [Routing](docs/guide/routing.md) |
 | Configure JSON and environment variables | [Configuration](docs/reference/configuration.md) |
 | Inspect requests and export telemetry | [Observability](docs/guide/observability.md) |
-| Resolve errors | [Troubleshooting](docs/guide/troubleshooting.md) |
 
-Browse the [documentation index](docs/index.md) or [CLI reference](docs/reference/cli.md) for the complete command guide. Repository users can substitute `./ar.ps1` on Windows or `bash ./ar` on macOS/Linux for `ar`.
+## License
+
+AgentRouter is licensed under the [MIT License](LICENSE).
