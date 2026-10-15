@@ -10,7 +10,7 @@ The client protocol and upstream provider protocol are separate choices. An agen
 | `POST /v1/responses` | Stateless text, function tools and results, and text reasoning output/history; JSON and SSE. See the limits below. |
 | `GET /v1/models` | Configured enabled models. This does not discover models from providers. |
 
-Inference uses the gateway token, not the upstream API key. See [agent setup](guide/agents.md).
+Inference uses the gateway token, not the upstream API key. See [agent setup](guide/agents).
 
 ## Upstream APIs
 
@@ -22,7 +22,7 @@ Inference uses the gateway token, not the upstream API key. See [agent setup](gu
 | GitHub Models | Existing GitHub adapter; model access depends on your account. |
 | Native OpenAI Responses or Gemini | Not implemented as upstream transports. |
 
-OpenRouter, DeepSeek, Z.AI and other compatible services need an endpoint, protocol, and exact model ID that support your workload. Text success alone does not prove streaming or tool compatibility. Provider checks send a real request and may incur charges. See [providers](guide/providers.md).
+OpenRouter, DeepSeek, Z.AI and other compatible services need an endpoint, protocol, and exact model ID that support your workload. Text success alone does not prove streaming or tool compatibility. Provider checks send a real request and may incur charges. See [providers](guide/providers).
 
 ## Responses And Codex Limits
 
@@ -30,4 +30,4 @@ Send full history with `store=false`. Stored continuations, `previous_response_i
 
 Opaque reasoning history is provider-specific; do not treat it as portable continuation state. The experimental Codex launcher and this Responses subset do not establish support for every Codex workflow, including custom patch tools.
 
-Tool execution stays in the client. AgentRouter does not run tools, rewrite local files, provide MCP aggregation, or synthesize agent execution traces. See [observability](guide/observability.md) for telemetry boundaries and [agent profiles](reference/agent-profiles.md) for launcher limits.
+Tool execution stays in the client. AgentRouter does not run tools, rewrite local files, provide MCP aggregation, or synthesize agent execution traces. See [observability](guide/observability) for telemetry boundaries and [agent profiles](reference/agent-profiles) for launcher limits.

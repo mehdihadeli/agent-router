@@ -11,7 +11,7 @@ agent tools on the gateway.
 | Kind | Supported surface | Child configuration | Notes |
 | --- | --- | --- | --- |
 | `claude` | CLI, or `cli-and-app` metadata | Anthropic Messages URL, token, default and tier models | Claude Code CLI is the verified local launcher. |
-| `codex` | CLI | Responses provider arguments and child-only token | Responses support is bounded; see [protocol limits](../integrations.md#responses-and-codex-limits). |
+| `codex` | CLI | Responses provider arguments and child-only token | Responses support is bounded; see [protocol limits](../integrations#responses-and-codex-limits). |
 | `opencode` | CLI | OpenAI-compatible URL, token, model, and `X_AR_AGENT` context | Uses the local OpenAI-compatible contract; OpenCode desktop switching is not automated. |
 | `claude-design` | App metadata only | Anthropic-compatible route metadata | App launch requires a future desktop adapter; `profile launch` rejects this kind. |
 
@@ -66,7 +66,7 @@ ar profile launch CodexTrial
 
 The launcher supplies a custom Responses provider through child-only configuration and an environment token. It does not edit global Codex files. Existing user/project settings still load; this is not a separate `CODEX_HOME`.
 
-The gateway supports a stateless Responses subset. Stored continuations, custom/freeform patch tools, multimodal input, and other unsupported semantics may prevent ordinary Codex tasks from working. Read [protocol limits](../integrations.md#responses-and-codex-limits) before relying on it. Full Codex session compatibility is not certified.
+The gateway supports a stateless Responses subset. Stored continuations, custom/freeform patch tools, multimodal input, and other unsupported semantics may prevent ordinary Codex tasks from working. Read [protocol limits](../integrations#responses-and-codex-limits) before relying on it. Full Codex session compatibility is not certified.
 
 ## Other Clients
 
@@ -74,4 +74,4 @@ Clients can connect directly if they use the supported Messages or Responses sub
 
 ## Optional Agent Telemetry
 
-`profile add` accepts `--telemetry-endpoint` for child-only native exporter configuration. This is separate from gateway telemetry. Delivery depends on the installed agent version and has not been verified end to end. Prepare collector access controls, redaction, and retention first; disabling prompt logging does not prove every native tool-event field is redacted. See [observability](observability.md).
+`profile add` accepts `--telemetry-endpoint` for child-only native exporter configuration. This is separate from gateway telemetry. Delivery depends on the installed agent version and has not been verified end to end. Prepare collector access controls, redaction, and retention first; disabling prompt logging does not prove every native tool-event field is redacted. See [observability](observability).

@@ -18,7 +18,7 @@ Use `ar config token` or `ar config token --managed` only when you explicitly ne
 
 Check `ar provider list`, the exact native model ID, and your route. Preserve model IDs containing slashes. `/v1/models` lists configured models, not the provider's live catalog.
 
-A 404 from an upstream can mean an incorrect base URL, unavailable model, or unsupported API operation. A 400 can mean unsupported tool choice or content. Read [protocol compatibility](../integrations.md), particularly before using Codex; a Responses endpoint does not imply complete Codex support.
+A 404 from an upstream can mean an incorrect base URL, unavailable model, or unsupported API operation. A 400 can mean unsupported tool choice or content. Read [protocol compatibility](../integrations), particularly before using Codex; a Responses endpoint does not imply complete Codex support.
 
 For a deliberate paid connectivity check, run `ar provider check PROVIDER/MODEL`. This does not certify every tool or streaming feature.
 
@@ -28,7 +28,7 @@ A deadline before output returns HTTP 504. Once SSE output has started, expiry i
 
 Check `RequestTimeoutSeconds` for ordinary hosting, or `Execution.DeadlineSeconds` for explicitly activated versioned settings. Retry delays and Retry-After consume the same deadline. Increasing attempts can increase charges without fixing an authentication or validation error.
 
-HTTP 503 can indicate upstream overload, an open provider/model circuit, or exhausted local concurrency. Protection state is shared across requests; circuit break duration is 15 seconds. See [retry limits](../reference/configuration.md#provider-attempt-budget).
+HTTP 503 can indicate upstream overload, an open provider/model circuit, or exhausted local concurrency. Protection state is shared across requests; circuit break duration is 15 seconds. See [retry limits](../reference/configuration#provider-attempt-budget).
 
 ## Saved Changes Are Not Active
 

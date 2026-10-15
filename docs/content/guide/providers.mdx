@@ -25,11 +25,11 @@ Set the named variable privately, or use the interactive prompt. This provider c
 
 ## Custom Endpoints
 
-OpenRouter, DeepSeek, Z.AI and other services can be configured when they provide a supported upstream protocol. Check [protocol compatibility](../integrations.md) before setup. Successful registration does not prove that every model supports tools, streaming, or reasoning.
+OpenRouter, DeepSeek, Z.AI and other services can be configured when they provide a supported upstream protocol. Check [protocol compatibility](../integrations) before setup. Successful registration does not prove that every model supports tools, streaming, or reasoning.
 
 For the official `api.deepseek.com` endpoint, required, named, or disabled tool selection disables default thinking when needed for compatibility. Automatic tool choice and unrelated hosts are unchanged. An explicitly incompatible thinking setting is rejected.
 
-Azure OpenAI and GitHub Models have adapter paths. Their resource/deployment configuration is described under [legacy host options](../reference/configuration.md#legacy-host-options); a custom OpenAI-compatible URL alone does not make an Azure deployment work.
+Azure OpenAI and GitHub Models have adapter paths. Their resource/deployment configuration is described under [legacy host options](../reference/configuration#legacy-host-options); a custom OpenAI-compatible URL alone does not make an Azure deployment work.
 
 ## Check A Connection
 

@@ -14,7 +14,7 @@ A recognized explicit provider/model wins over tier selection. Otherwise a confi
 
 ## Conditional Settings
 
-The [configuration reference](../reference/configuration.md#versioned-settings-and-preview) contains a complete versioned file. It uses `SchemaVersion`, `Server`, `Providers`, `Routing`, `Execution`, and `Agents` sections.
+The [configuration reference](../reference/configuration#versioned-settings-and-preview) contains a complete versioned file. It uses `SchemaVersion`, `Server`, `Providers`, `Routing`, `Execution`, and `Agents` sections.
 
 Validate and inspect a candidate without contacting providers:
 
@@ -47,4 +47,4 @@ Connection failures without an HTTP status, HTTP 408, 429, and 5xx may retry. Ot
 
 After the first provider stream update is exposed, no retry or provider switching is allowed. A later failure interrupts that stream. Retrying inference can incur extra charges even when the earlier attempt did not finish.
 
-Per-provider/model concurrency and circuit-breaker defaults are described in the [attempt budget reference](../reference/configuration.md#provider-attempt-budget). Credential rotation and token/cost admission are not implemented.
+Per-provider/model concurrency and circuit-breaker defaults are described in the [attempt budget reference](../reference/configuration#provider-attempt-budget). Credential rotation and token/cost admission are not implemented.
