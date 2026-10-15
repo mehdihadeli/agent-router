@@ -37,14 +37,14 @@ jobs:
         working-directory: docs
         run: npm ci
 
-      - name: Build VitePress site
+      - name: Build Nextra site
         working-directory: docs
         run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: docs/.vitepress/dist
+          path: docs/out
 
   deploy:
     needs: build

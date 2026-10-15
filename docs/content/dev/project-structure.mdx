@@ -1,6 +1,6 @@
 # Project Structure and Architecture Decision
 
-This is a contributor reference. For installation and everyday workflows, start with the [user documentation](../index.md).
+This is a contributor reference. For installation and everyday workflows, start with the [user documentation](../index).
 
 ## Namespace Convention
 
@@ -8,7 +8,7 @@ Namespaces match the project root and every containing folder. For example, a co
 
 The root namespaces are `AgentRouter.Core`, `AgentRouter.Cli`, `AgentRouter.ServiceDefaults`, `AgentRouter.Core.Tests`, and `AgentRouter.Cli.Tests`. IDE0130 enforces folder alignment. ServiceDefaults extension methods now belong to `AgentRouter.ServiceDefaults`, not `Microsoft.Extensions.Hosting`. Consumers compiling against previous namespaces must update imports and fully qualified names; assembly and package names are unchanged.
 
-AgentRouter configuration properties and enum output use PascalCase. Shared serialization retains reads of older property casing and legacy enum spellings. External provider/agent protocols keep their own wire names. See [configuration naming](../reference/configuration.md#naming-conventions).
+AgentRouter configuration properties and enum output use PascalCase. Shared serialization retains reads of older property casing and legacy enum spellings. External provider/agent protocols keep their own wire names. See [configuration naming](../reference/configuration#naming-conventions).
 
 ## Decision
 
@@ -89,7 +89,7 @@ Service discovery is unnecessary for fixed configured provider endpoints. Standa
 
 ## Feature Coverage
 
-Use [protocol compatibility](../integrations.md), the [CLI guide](../guide/cli.md), the [web UI guide](../guide/ui.md), and [observability](../guide/observability.md) as the current user-facing capability documentation. Configuration DTOs alone do not establish support for other policies.
+Use [protocol compatibility](../integrations), the [CLI guide](../guide/cli), the [web UI guide](../guide/ui), and [observability](../guide/observability) as the current user-facing capability documentation. Configuration DTOs alone do not establish support for other policies.
 
 Implementation worklists and historical verification notes belong in the ignored local planning directory, not user documentation. Passing selected tests does not establish full agent or reference-project compatibility.
 

@@ -1,0 +1,115 @@
+---
+title: AgentRouter
+description: A local gateway for connecting coding agents to the provider and model that fits the task.
+---
+
+<section className="home-hero">
+  <div className="home-hero-copy">
+    <p className="home-kicker">A CALM CONTROL PLANE FOR MODEL WORK</p>
+    <h1>Your agent loop stays yours.</h1>
+    <p className="home-lede">AgentRouter handles provider identity, model selection, translation, retries, and local visibility. Your agent still owns tools, files, permissions, and the work.</p>
+    <div className="home-actions">
+      <a href="./guide/quick-start">Get started</a>
+      <a href="./reference/cli">Read the CLI reference <span aria-hidden="true">-&gt;</span></a>
+    </div>
+    <div className="home-stats"><strong>01</strong><span>gateway</span><strong>n</strong><span>providers</span><strong>0</strong><span>global setting edits</span></div>
+  </div>
+  <div className="control-plane" aria-label="AgentRouter control plane">
+    <div className="plane-node"><small>AGENT</small><strong>Claude Code</strong><span>or another client</span></div>
+    <div className="plane-connector"><i>local</i><span /></div>
+    <div className="plane-node plane-node-focus"><small>AR</small><strong>AgentRouter</strong><span>route + translate</span></div>
+    <div className="plane-connector"><i>selected</i><span /></div>
+    <div className="plane-node"><small>UPSTREAM</small><strong>Provider</strong><span>cloud or local</span></div>
+  </div>
+</section>
+
+<section className="home-first-five home-section">
+  <div className="home-section-copy">
+    <p className="home-kicker">FIRST FIVE MINUTES</p>
+    <h2>From zero to routed.</h2>
+    <p>Install the tool, register one model, choose a route, and launch an isolated profile.</p>
+    <a className="home-text-link" href="./guide/quick-start">Follow the quick start <span aria-hidden="true">-&gt;</span></a>
+  </div>
+  <div className="setup-terminal" aria-label="AgentRouter setup commands">
+    <div className="terminal-bar"><span /><span /><span /><b>agent-router</b></div>
+    <div className="setup-terminal-body">
+      <p className="terminal-comment"><span className="code-line-number">01</span># install</p>
+      <p><span className="code-line-number">02</span><span className="syntax-command">dotnet</span> <span className="syntax-keyword">tool install</span> <span className="syntax-flag">{"--"}global</span> <span className="syntax-value">AgentRouter</span></p>
+      <p className="terminal-comment"><span className="code-line-number">03</span># configure</p>
+      <p><span className="code-line-number">04</span><span className="syntax-command">ar</span> <span className="syntax-keyword">init</span> <span className="syntax-flag">{"--"}port</span> <span className="syntax-number">4600</span></p>
+      <p><span className="code-line-number">05</span><span className="syntax-command">ar</span> <span className="syntax-keyword">provider add</span> <span className="syntax-value">work</span> <span className="syntax-operator">{"`"}</span></p>
+      <p><span className="code-line-number">06</span>  <span className="syntax-flag">{"--"}base-url</span> <span className="syntax-url">https://api.openai.com/v1</span> <span className="syntax-operator">{"`"}</span></p>
+      <p><span className="code-line-number">07</span>  <span className="syntax-flag">{"--"}models</span> <span className="syntax-string">gpt-4.1</span></p>
+      <p><span className="code-line-number">08</span><span className="syntax-command">ar</span> <span className="syntax-keyword">route set</span> <span className="syntax-value">work/gpt-4.1</span></p>
+      <p className="terminal-comment"><span className="code-line-number">09</span># run</p>
+      <p><span className="code-line-number">10</span><span className="syntax-command">ar</span> <span className="syntax-keyword">serve</span></p>
+    </div>
+  </div>
+</section>
+
+<section className="home-strip">
+  <p>ONE GATEWAY. MANY UPSTREAMS.</p>
+  <div className="provider-list"><span>OpenAI-compatible</span><span>Anthropic</span><span>Azure OpenAI</span><span>GitHub Models</span><span>DeepSeek</span></div>
+</section>
+
+<section className="home-section home-route-section">
+  <div className="home-section-copy">
+    <p className="home-kicker">ROUTING THAT EXPLAINS ITSELF</p>
+    <h2>Move from “which model?” to “which model for this task?”</h2>
+    <p>Keep a stable agent connection while rules choose the provider, tier, fallback, and execution budget behind it. Preview decisions without saving or contacting a provider.</p>
+    <a className="home-text-link" href="./guide/routing">Explore routing and fallback <span aria-hidden="true">-&gt;</span></a>
+  </div>
+  <div className="route-preview" aria-label="Routing decision preview">
+    <div className="preview-heading"><span>ROUTE PREVIEW</span><b>versioned settings</b></div>
+    <div className="route-request"><span>task</span><strong>review</strong><span>subagent</span><strong>worker</strong></div>
+    <div className="route-line"><i>01</i><span>match task: review</span><b>yes</b></div>
+    <div className="route-line"><i>02</i><span>primary: work/gpt-4.1</span><b>ready</b></div>
+    <div className="route-line route-line-muted"><i>03</i><span>fallback: reasoning/claude</span><b>standby</b></div>
+    <div className="route-result"><span>SELECTED ROUTE</span><strong>work / gpt-4.1</strong><small>MaxAttempts 3 &middot; 30s deadline</small></div>
+  </div>
+</section>
+
+<section className="home-section home-dark-section">
+  <div className="home-section-copy">
+    <p className="home-kicker">A CLEAN CHILD CONTRACT</p>
+    <h2>Profiles keep experiments away from global settings.</h2>
+    <p>Launch Claude Code, Codex, or OpenCode with an isolated endpoint, token, model, and executable. The agent keeps ownership of files, commands, permissions, and tools.</p>
+    <a className="home-text-link" href="./guide/agents">See agent profiles <span aria-hidden="true">-&gt;</span></a>
+  </div>
+  <div className="home-code-panel">
+    <div className="code-panel-label">POWERSHELL / CHILD PROCESS</div>
+    <pre><code><span className="code-line"><span className="code-line-number">01</span><span className="syntax-command">ar</span> <span className="syntax-keyword">profile add</span> <span className="syntax-value">Review</span> <span className="syntax-flag">{"--"}model</span> <span className="syntax-string">work/gpt-4.1</span></span>
+  <span className="code-line"><span className="code-line-number">02</span><span className="syntax-command">ar</span> <span className="syntax-keyword">profile launch</span> <span className="syntax-value">Review</span> <span className="syntax-flag">{"--"}</span> <span className="syntax-flag">{"--"}permission-mode</span> <span className="syntax-string">plan</span></span></code></pre>
+    <div className="code-panel-output"><span className="status-dot" /> launching Review with child-only credentials</div>
+    <div className="code-panel-output"><span className="status-dot" /> parent environment unchanged</div>
+  </div>
+</section>
+
+<section className="home-section home-observe-section">
+  <div className="home-section-copy">
+    <p className="home-kicker">OBSERVABILITY WITHOUT BODY CAPTURE</p>
+    <h2>Know what the gateway did, without logging what it should not.</h2>
+    <p>Inspect sanitized request history, latency, dispatches, usage, and outcomes. OpenTelemetry export stays opt-in, and unknown cost or token values remain unknown.</p>
+    <a className="home-text-link" href="./guide/observability">Read the observability guide <span aria-hidden="true">-&gt;</span></a>
+  </div>
+  <div className="observe-preview" aria-label="Observability dashboard preview">
+    <div className="observe-top"><span>LAST 24 HOURS</span><b>REQUEST HISTORY</b></div>
+    <div className="observe-metrics"><strong>248<small>requests</small></strong><strong>98.4%<small>success</small></strong><strong>1.8s<small>p95 latency</small></strong></div>
+    <div className="observe-bars"><i style={{ height: "38%" }} /><i style={{ height: "65%" }} /><i style={{ height: "52%" }} /><i style={{ height: "78%" }} /><i style={{ height: "61%" }} /><i style={{ height: "92%" }} /><i style={{ height: "72%" }} /><i style={{ height: "84%" }} /></div>
+    <div className="observe-row"><span><i className="status-dot" /> work / gpt-4.1</span><b>ok</b><small>842 ms</small></div>
+    <div className="observe-row"><span><i className="status-dot" /> reasoning / claude</span><b>ok</b><small>1.4 s</small></div>
+  </div>
+</section>
+
+<section className="home-grid">
+  <article className="home-card"><span className="card-number">01</span><strong>Provider clarity</strong><p>Keep endpoint, protocol, credentials, and native model IDs explicit.</p><a href="./guide/providers">Connect a provider <span aria-hidden="true">-&gt;</span></a></article>
+  <article className="home-card"><span className="card-number">02</span><strong>Protocol honesty</strong><p>Messages and Responses support is documented by behavior, not endpoint names.</p><a href="./integrations">Check compatibility <span aria-hidden="true">-&gt;</span></a></article>
+  <article className="home-card"><span className="card-number">03</span><strong>Local control</strong><p>Use the CLI, managed lifecycle, masked configuration, and opt-in telemetry.</p><a href="./guide/cli">Learn the workflow <span aria-hidden="true">-&gt;</span></a></article>
+</section>
+
+<section className="home-final-cta">
+  <p className="home-kicker">START WITH ONE ROUTE</p>
+  <h2>Make your agent setup intentional.</h2>
+  <p>Configure a provider, preview a route, and launch an isolated profile in a few commands.</p>
+  <a href="./guide/quick-start">Read the quick start <span aria-hidden="true">-&gt;</span></a>
+</section>

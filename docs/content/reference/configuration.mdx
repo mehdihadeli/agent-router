@@ -8,7 +8,7 @@
 | Versioned settings JSON | Conditional routing, numeric rewrites, and fallback. | Validate/preview first, then explicitly run `serve --settings-file PATH`. |
 | Legacy host options | Existing flat JSON/environment configuration or library embedding. | Restart the host. |
 
-These contracts are distinct. Saved providers use `BaseUrl`; versioned providers use `Endpoint`; legacy provider arrays use `BaseAddress`. Do not combine their examples into one document. For a first setup, follow [Install and start](../guide/quick-start.md).
+These contracts are distinct. Saved providers use `BaseUrl`; versioned providers use `Endpoint`; legacy provider arrays use `BaseAddress`. Do not combine their examples into one document. For a first setup, follow [Install and start](../guide/quick-start).
 
 ## Initialize Saved Configuration
 
@@ -73,7 +73,7 @@ The former gateway-prefixed environment names are no longer accepted. Rename dep
 
 ## Versioned Settings And Preview
 
-Version-1 settings separate server options, provider protocols and credential references, routing rules, execution budgets, and agent metadata. See [routing](../guide/routing.md) for when to use them.
+Version-1 settings separate server options, provider protocols and credential references, routing rules, execution budgets, and agent metadata. See [routing](../guide/routing) for when to use them.
 
 `config validate` and `route preview` remain read-only: they do not activate settings, resolve credentials or contact providers. Foreground `serve --settings-file PATH` explicitly activates this contract. Ordinary `serve`, managed inference and provider/profile management continue using persisted configuration. The two configuration contracts are not merged during explicit activation.
 
@@ -214,7 +214,7 @@ The executor tries deduplicated rule/global candidates in order within the share
 
 `POST /v1/responses` shares inference authentication, the 16 MiB body limit, routing, rewrites and execution policy with Messages. It accepts text or text-message history, instructions, client function declarations/calls/results, tool choice and numeric generation options. It emits JSON or sequenced text/function SSE lifecycle events with reported usage and incomplete/failed termination. Tools execute in the client.
 
-Use full history and `store=false`. Text reasoning output/history is supported, but reasoning-effort controls and nonempty summaries are not. Stored/background responses, `previous_response_id`, custom/grammar/hosted tools, strict schema enforcement and multimodal content are unsupported. Unknown fields are rejected. See [protocol compatibility](../integrations.md); this does not certify a complete Codex session.
+Use full history and `store=false`. Text reasoning output/history is supported, but reasoning-effort controls and nonempty summaries are not. Stored/background responses, `previous_response_id`, custom/grammar/hosted tools, strict schema enforcement and multimodal content are unsupported. Unknown fields are rejected. See [protocol compatibility](../integrations); this does not certify a complete Codex session.
 
 ### Request Summaries And Telemetry
 
@@ -222,11 +222,11 @@ Set `Observability__Enabled=true` to enable the bounded background summary write
 
 `GET /management/v1/requests?limit=100` requires the management token. The limit is clamped to 1..1000, newest first. Use the same `AR_CONFIG_DIR` for standalone inference and management. Explicit custom embedded/management storage-path propagation into child inference still needs integration coverage. There are no prompt bodies, agent-event records, search filters or pagination cursors in this initial summary API.
 
-ServiceDefaults subscribes to `AgentRouter.Gateway`: inference spans, request/attempt counters and duration histogram, plus sanitized request-completion logs. Configure `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` for an HTTP OTLP collector. Gateway telemetry does not represent unobserved local tool execution. Opt-in native agent export is described in [launch isolation](cli.md#launch-isolation).
+ServiceDefaults subscribes to `AgentRouter.Gateway`: inference spans, request/attempt counters and duration histogram, plus sanitized request-completion logs. Configure `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` for an HTTP OTLP collector. Gateway telemetry does not represent unobserved local tool execution. Opt-in native agent export is described in [launch isolation](cli#launch-isolation).
 
 ## Persisted Configuration
 
-Use the [CLI configuration commands](cli.md) for normal setup. Provider, route, and profile mutations share validation with management APIs. `config show` reports saved state with secrets masked or omitted; it does not disclose runtime-only secret overrides.
+Use the [CLI configuration commands](cli) for normal setup. Provider, route, and profile mutations share validation with management APIs. `config show` reports saved state with secrets masked or omitted; it does not disclose runtime-only secret overrides.
 
 | Platform | Default data directory |
 | --- | --- |

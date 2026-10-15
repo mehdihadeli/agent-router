@@ -17,7 +17,7 @@ ar route set work/gpt-4.1
 ar profile add Review --model work/gpt-4.1
 ```
 
-`provider add` reads `OPENAI_API_KEY`, or prompts privately in an interactive terminal. Do not put the key in command arguments. Choose an actual model your account can use; `gpt-4.1` is an example, not a requirement. [Other providers](providers.md) may need a different endpoint, protocol, or key variable.
+`provider add` reads `OPENAI_API_KEY`, or prompts privately in an interactive terminal. Do not put the key in command arguments. Choose an actual model your account can use; `gpt-4.1` is an example, not a requirement. [Other providers](providers) may need a different endpoint, protocol, or key variable.
 
 Configuration is saved as `config.json` under `~/.agent-router`; encrypted credentials remain separate. The profile name `Review` is yours to choose.
 
@@ -48,13 +48,13 @@ ar profile launch Review
 
 Check that status reports `Inference: Running`. Management availability alone does not prove model handling is ready, and neither check proves upstream access.
 
-Use `ar service reload` after changing saved providers or routes. Reload drains requests and restarts inference; a short interruption is possible. Use `ar service stop` when finished. [CLI reference](../reference/cli.md) explains pause/resume, management-only mode, and exit codes.
+Use `ar service reload` after changing saved providers or routes. Reload drains requests and restarts inference; a short interruption is possible. Use `ar service stop` when finished. [CLI reference](../reference/cli) explains pause/resume, management-only mode, and exit codes.
 
 ## Next Steps
 
-- [Web UI](ui.md): pair a local browser and manage providers, routes, profiles, lifecycle, and requests.
-- [CLI guide](cli.md): learn terminal workflows and observability reporting.
-- [Providers](providers.md): native Anthropic and compatible services.
-- [Agents](agents.md): launch isolation and experimental Codex.
-- [Routing](routing.md): tiers, rules, and fallback.
-- [Troubleshooting](troubleshooting.md): connection and startup failures.
+- [Web UI](ui): pair a local browser and manage providers, routes, profiles, lifecycle, and requests.
+- [CLI guide](cli): learn terminal workflows and observability reporting.
+- [Providers](providers): native Anthropic and compatible services.
+- [Agents](agents): launch isolation and experimental Codex.
+- [Routing](routing): tiers, rules, and fallback.
+- [Troubleshooting](troubleshooting): connection and startup failures.
