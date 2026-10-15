@@ -1,26 +1,53 @@
-# AgentRouter Documentation
+---
+layout: home
+title: AgentRouter
+titleTemplate: Local model routing for coding agents
+description: A local gateway for connecting coding agents to the provider and model that fits the task.
+hero:
+  name: AgentRouter
+  text: Route every agent to the right model.
+  tagline: One loopback gateway for providers, profiles, tools, streaming, and deliberate model selection.
+  actions:
+    - theme: brand
+      text: Start here
+      link: /guide/quick-start
+    - theme: alt
+      text: View the CLI
+      link: /reference/cli
+    - theme: link
+      text: GitHub
+      link: https://github.com/mehdihadeli/agent-router
+features:
+  - icon: 01
+    title: One local endpoint
+    details: Keep agent configuration stable while AgentRouter translates requests to the provider you choose.
+    link: /integrations
+    linkText: See protocol support
+  - icon: 02
+    title: Routing with intent
+    details: Set defaults, Claude tiers, conditional rules, rewrites, and ordered fallback candidates.
+    link: /guide/routing
+    linkText: Explore routing
+  - icon: 03
+    title: Profiles without drift
+    details: Save isolated launch profiles so experiments do not rewrite your global agent settings.
+    link: /guide/agents
+    linkText: Configure profiles
+  - icon: 04
+    title: Providers stay explicit
+    details: Connect OpenAI-compatible, Anthropic, Azure OpenAI, GitHub Models, and compatible endpoints.
+    link: /guide/providers
+    linkText: Add a provider
+  - icon: 05
+    title: Tools and streams intact
+    details: Forward system instructions, streaming, function tools, tool results, and supported content.
+    link: /integrations
+    linkText: Check compatibility
+  - icon: 06
+    title: Local control surface
+    details: Use the ar CLI, managed service lifecycle, masked configuration, and opt-in request telemetry.
+    link: /guide/cli
+    linkText: Learn the workflow
+---
 
-AgentRouter connects coding agents to models through a gateway you run locally. Configure a provider once, choose routes and launch profiles, and keep upstream credentials out of agent settings. The command is `ar`.
-
-## Get Started
-
-1. [Install and start](guide/quick-start.md): configure your first model and run the gateway.
-2. [Add providers](guide/providers.md): choose a protocol, supply credentials privately, and check connectivity.
-3. [Connect an agent](guide/agents.md): configure isolated Claude, Codex, OpenCode, and Claude Design profiles.
-4. [Open the web UI](guide/ui.md): pair a browser with local management and configure the workspace.
-5. [Inspect requests](guide/observability.md): use panel and CLI metrics or export telemetry.
-
-## Configure Your Gateway
-
-| Topic | What you can do |
-| --- | --- |
-| [Routing](guide/routing.md) | Select defaults and Claude tiers; preview conditional rules; activate bounded fallback. |
-| [Configuration](reference/configuration.md) | Understand saved settings, versioned JSON, PascalCase names, environment overrides, and storage. |
-| [CLI](reference/cli.md) | Find commands and options for setup, profiles, service lifecycle, and management. |
-| [CLI guide](guide/cli.md) | Follow complete terminal workflows for setup, operations, profiles, and observability. |
-| [Web UI](guide/ui.md) | Pair a local browser session and use Overview, Providers, Routing, Profiles, and Requests. |
-| [Agent profiles](reference/agent-profiles.md) | Configure profile kinds, launch surfaces, routing, and support boundaries. |
-| [Troubleshooting](guide/troubleshooting.md) | Diagnose authentication errors, missing models, timeouts, and service startup failures. |
-| [Protocol compatibility](integrations.md) | Check supported ingress and upstream protocols before connecting a client. |
-
-<!-- Contributor documentation is maintained under docs/dev/. -->
+<HomeSections />

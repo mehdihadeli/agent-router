@@ -10,7 +10,9 @@ export default defineConfig({
   appearance: true,
   lastUpdated: true,
   themeConfig: {
+    logo: { src: "/agent-router-mark.svg", alt: "AgentRouter" },
     nav: [
+      { text: "Home", link: "/" },
       { text: "Guide", link: "/guide/quick-start" },
       { text: "Reference", link: "/reference/cli" },
       { text: "Integrations", link: "/integrations" },
@@ -49,6 +51,7 @@ export default defineConfig({
     },
     outline: "deep",
     search: { provider: "local" },
+    socialLinks: [{ icon: "github", link: "https://github.com/mehdihadeli/agent-router" }],
     footer: {
       message: "Route coding agents to the model that fits the task.",
       copyright: "AgentRouter",

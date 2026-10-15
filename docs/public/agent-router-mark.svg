@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">AgentRouter</title>
+  <desc id="desc">A violet and cyan route mark connecting three nodes.</desc>
+  <defs>
+    <linearGradient id="surface" x1="12" y1="8" x2="84" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55a9ff" />
+      <stop offset="1" stop-color="#173e78" />
+    </linearGradient>
+    <linearGradient id="route" x1="24" y1="26" x2="73" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d8ecff" />
+      <stop offset="1" stop-color="#68b5ff" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="88" height="88" rx="25" fill="url(#surface)" />
+  <path d="M25 29h35c8 0 13 5 13 12s-5 12-13 12H38c-8 0-13 5-13 12s5 12 13 12h35" fill="none" stroke="url(#route)" stroke-linecap="round" stroke-width="7" />
+  <circle cx="25" cy="29" r="7" fill="#f4f2ff" />
+  <circle cx="73" cy="77" r="7" fill="#68b5ff" />
+  <circle cx="73" cy="41" r="7" fill="#ffd166" />
+</svg>
