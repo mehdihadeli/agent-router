@@ -460,9 +460,9 @@ body {
 
 .home-dark-section { max-width: none; padding-right: max(1.5rem, calc((100vw - 1120px) / 2)); padding-left: max(1.5rem, calc((100vw - 1120px) / 2)); background: #17283a; color: #fff; }
 .home-dark-section .home-kicker { color: #7ec0ff; }
-.home-dark-section h2 { color: #f3f8fd; }
-.home-dark-section .home-section-copy > p:not(.home-kicker) { color: #b9c9d8; }
-.home-dark-section .home-text-link { color: #91caff; }
+.home-dark-section .home-section-copy h2 { color: #f3f8fd !important; }
+.home-dark-section .home-section-copy > p:not(.home-kicker) { color: #b9c9d8 !important; }
+.home-dark-section .home-text-link { color: #91caff !important; }
 .home-code-panel { width: 100%; box-sizing: border-box; padding: 1.5rem; border-color: #bdcfe2; background: #f8fbfe; }
 .code-panel-label { color: #5f7891; font-family: Consolas, monospace; font-size: 0.7rem; letter-spacing: 0.1em; }
 .home-code-panel pre { margin: 1.5rem 0; padding: 0; overflow-x: auto; background: transparent; color: #273f58; font-size: 0.88rem; line-height: 1.8; }

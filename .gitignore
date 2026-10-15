@@ -87,10 +87,6 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
-# VitePress documentation output
-docs/.vitepress/cache/
-docs/.vitepress/dist/
-
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
