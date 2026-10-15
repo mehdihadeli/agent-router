@@ -1,0 +1,60 @@
+# Install And Start
+
+This guide uses the repository launchers. You need the .NET 10 SDK, access to a supported provider/model, and Claude Code installed separately if you plan to launch it.
+
+## Choose A Command
+
+On Windows, use `./ar.ps1`. On macOS/Linux, use `bash ./ar`. If you already installed the packaged .NET tool, use `ar` directly. Examples below use `ar`; substitute your launcher when running from the repository.
+
+Run `ar --help` to see available commands. Running `ar` alone does not start a gateway.
+
+## Configure Your First Model
+
+```powershell
+ar init --port 4600
+ar provider add work --base-url https://api.openai.com/v1 --models gpt-4.1
+ar route set work/gpt-4.1
+ar profile add Review --model work/gpt-4.1
+```
+
+`provider add` reads `OPENAI_API_KEY`, or prompts privately in an interactive terminal. Do not put the key in command arguments. Choose an actual model your account can use; `gpt-4.1` is an example, not a requirement. [Other providers](providers.md) may need a different endpoint, protocol, or key variable.
+
+Configuration is saved as `config.json` under `~/.agent-router`; encrypted credentials remain separate. The profile name `Review` is yours to choose.
+
+## Start And Connect
+
+```powershell
+ar serve
+```
+
+Leave that terminal running. In another terminal:
+
+```powershell
+ar status --url http://127.0.0.1:4600
+ar profile launch Review --url http://127.0.0.1:4600
+```
+
+The profile launches Claude Code with gateway credentials in its child environment. Global Claude settings remain unchanged. Stop the gateway with Ctrl+C. The agent may make paid model requests when you use it.
+
+## Run In The Background
+
+After stopping foreground `serve`, use:
+
+```powershell
+ar service start
+ar service status
+ar profile launch Review
+```
+
+Check that status reports `Inference: Running`. Management availability alone does not prove model handling is ready, and neither check proves upstream access.
+
+Use `ar service reload` after changing saved providers or routes. Reload drains requests and restarts inference; a short interruption is possible. Use `ar service stop` when finished. [CLI reference](../reference/cli.md) explains pause/resume, management-only mode, and exit codes.
+
+## Next Steps
+
+- [Web UI](ui.md): pair a local browser and manage providers, routes, profiles, lifecycle, and requests.
+- [CLI guide](cli.md): learn terminal workflows and observability reporting.
+- [Providers](providers.md): native Anthropic and compatible services.
+- [Agents](agents.md): launch isolation and experimental Codex.
+- [Routing](routing.md): tiers, rules, and fallback.
+- [Troubleshooting](troubleshooting.md): connection and startup failures.

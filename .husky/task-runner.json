@@ -1,0 +1,111 @@
+{
+	"$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+	"tasks": [
+		{
+			"name": "format",
+			"group": "pre-commit",
+			"command": "dotnet",
+			"args": ["tool", "run", "csharpier", "--", "check", "${staged}"],
+			"include": ["**/*.cs"]
+		},
+		{
+			"name": "style",
+			"group": "pre-commit",
+			"command": "dotnet",
+			"args": [
+				"format",
+				"style",
+				"agent-router.slnx",
+				"--verify-no-changes",
+				"--severity",
+				"error",
+				"--verbosity",
+				"minimal",
+				"--include",
+				"${staged}"
+			],
+			"include": ["**/*.cs"]
+		},
+		{
+			"name": "analyzers",
+			"group": "pre-commit",
+			"command": "dotnet",
+			"args": [
+				"format",
+				"analyzers",
+				"agent-router.slnx",
+				"--verify-no-changes",
+				"--severity",
+				"error",
+				"--verbosity",
+				"minimal",
+				"--include",
+				"${staged}"
+			],
+			"include": ["**/*.cs"]
+		},
+		{
+			"name": "setup-tools-restore",
+			"group": "setup",
+			"command": "dotnet",
+			"args": ["tool", "restore"]
+		},
+		{
+			"name": "setup-husky-install",
+			"group": "setup",
+			"command": "dotnet",
+			"args": ["tool", "run", "husky", "--", "install"]
+		},
+		{
+			"name": "setup-solution-restore",
+			"group": "setup",
+			"command": "dotnet",
+			"args": ["restore", "agent-router.slnx"]
+		},
+		{
+			"name": "build",
+			"group": "pre-push",
+			"command": "dotnet",
+			"args": ["build", "agent-router.slnx", "--configuration", "Release"]
+		},
+		{
+			"name": "build-ci",
+			"group": "ci",
+			"command": "dotnet",
+			"args": ["build", "agent-router.slnx", "--no-restore", "--configuration", "Release"]
+		},
+		{
+			"name": "gitleaks",
+			"group": "security",
+			"command": "pwsh",
+			"args": [
+				"-NoLogo",
+				"-NoProfile",
+				"-Command",
+				"if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host 'Docker is required for the explicit Gitleaks security scan. Install Docker Desktop, then run the security task again.'; exit 1 }; docker info *> $null; if ($LASTEXITCODE -ne 0) { Write-Host 'Docker is installed but the daemon is not running. Start Docker Desktop, then run the security task again.'; exit 1 }; $repoRoot = (Get-Location).Path; docker run --rm -v \"${repoRoot}:/repo\" -w /repo zricethezav/gitleaks:latest dir --no-banner --redact --verbose ."
+			]
+		},
+		{
+			"name": "test",
+			"group": "pre-push",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"--solution",
+				"agent-router.slnx",
+				"--configuration",
+				"Release",
+				"--no-build",
+				"--no-restore",
+				"--filter-not-class",
+				"AgentRouter.Cli.Tests.Integration.EndToEndGatewayToolWiringTests",
+				"--filter-not-class",
+				"AgentRouter.Core.Tests.Integration.Providers.LiveProviderTests",
+				"--filter-not-class",
+				"AgentRouter.Core.Tests.Integration.Providers.CodexProviderCompatibilityTests",
+				"--filter-not-class",
+				"AgentRouter.Core.Tests.Integration.Api.ErrorHandlingIntegrationTests"
+			]
+		}
+	]
+}

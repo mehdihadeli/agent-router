@@ -1,0 +1,107 @@
+# Request History And Telemetry
+
+AgentRouter offers local request summaries and OpenTelemetry export. They are independent: enabling an exporter does not enable a history database, and request summaries do not reveal every action an agent performs.
+
+## Local Request Summaries
+
+Set this before starting inference:
+
+```dotenv
+Observability__Enabled=true
+```
+
+Summaries record requested/resolved model, provider, duration, outcome, dispatch count, and reported input/output tokens when available. Unknown values remain null. Cost is not calculated. Prompt/response bodies and local agent tool events are not captured.
+
+History uses a bounded background queue. A full queue or storage error drops summaries without failing inference. Up to 10,000 rows are retained for 30 days; cleanup occurs on writes, and reads exclude expired rows.
+
+The authenticated management API exposes recent records:
+
+```http
+GET /management/v1/requests?limit=100
+Authorization: Bearer <management-token>
+```
+
+Use the separate management token, not an inference token. The limit is 1..1000, newest first. There are no search filters or cursor pagination yet. Standalone inference and management must use the same data directory for shared history. Custom embedded path propagation still has limitations.
+
+## Panel And CLI Metrics
+
+Both management clients consume one sanitized observability snapshot:
+
+```http
+GET /management/v1/observability?hours=24
+Authorization: Bearer <management-token>
+```
+
+The window accepts 1 to 720 hours and returns request count, success/error counts, success rate,
+average and p95 latency, reported input/output tokens, known cost, top provider/model, and the
+last request time. Unknown usage and cost stay unknown; AgentRouter does not invent billing data.
+The Angular Overview shows the 24-hour snapshot, while Requests remains the detailed activity
+log.
+
+The same aggregation is available in the terminal:
+
+```powershell
+ar observability --hours 24
+```
+
+Both surfaces read retained summaries, so they remain useful when no OTLP backend is running.
+They do not expose prompt/response bodies.
+
+## OpenTelemetry Export
+
+For an HTTP/protobuf collector:
+
+```dotenv
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Set these in the environment of the process that starts the gateway. AgentRouter emits gateway inference traces, request/attempt counters, durations, and sanitized completion logs, alongside configured HTTP/runtime instrumentation. The gateway telemetry source is `AgentRouter.Gateway`.
+
+The gateway meter is `AgentRouter.Gateway`. It emits these custom metrics:
+
+| Metric | Type | Meaning | Dimensions |
+| --- | --- | --- | --- |
+| `agentrouter.inference.requests` | Counter | Completed unary and streaming inference requests. | `outcome`, `streaming`, `provider` |
+| `agentrouter.inference.attempts` | Counter | Provider dispatch attempts, including retries and fallback candidates. | `provider` |
+| `agentrouter.inference.active` | UpDownCounter | Inference requests currently in progress. | None |
+| `agentrouter.inference.duration` | Histogram, seconds | End-to-end gateway inference duration. | `outcome`, `streaming`, `provider` |
+| `agentrouter.inference.input_tokens` | Histogram, tokens | Reported input token usage when the provider supplies it. | `outcome`, `streaming`, `provider` |
+| `agentrouter.inference.output_tokens` | Histogram, tokens | Reported output token usage when the provider supplies it. | `outcome`, `streaming`, `provider` |
+| `agentrouter.history.dropped` | Counter | Request summaries dropped because the history queue or storage was unavailable. | None |
+
+The gateway activity source is also `AgentRouter.Gateway`. Each inference creates a
+`gateway.inference` span with these attributes when values are available:
+
+| Attribute | Meaning |
+| --- | --- |
+| `agentrouter.requested_model` | Model selector supplied by the client. |
+| `agentrouter.streaming` | Whether the request uses streaming responses. |
+| `agentrouter.input_messages` | Number of input messages, not their contents. |
+| `agentrouter.route.rule` | Versioned routing rule selected, when applicable. |
+| `agentrouter.dispatches` | Number of provider dispatches used by the request. |
+| `agentrouter.outcome` | `ok`, `error`, `cancelled`, or `timeout`. |
+| `gen_ai.provider.name` | Resolved provider ID. |
+| `gen_ai.request.model` | Resolved upstream model ID. |
+| `gen_ai.response.model` | Model reported at completion. |
+| `gen_ai.usage.input_tokens` | Reported input tokens. |
+| `gen_ai.usage.output_tokens` | Reported output tokens. |
+
+The service defaults additionally enable ASP.NET Core server instrumentation, HttpClient
+instrumentation, .NET runtime metrics, and `Experimental.Microsoft.Extensions.AI` provider
+instrumentation. Health and aliveness endpoints are excluded from ASP.NET Core traces. Provider
+instrumentation is enabled only when `Observability__Enabled=true` or the equivalent runtime
+option is enabled.
+
+The management snapshot is derived from completed request summaries rather than querying an OTLP
+backend from the browser or CLI. It reports request count, success/error counts, success rate,
+average and p95 latency, reported input/output tokens, known cost, top provider/model, and last
+request time.
+
+Run your own compatible collector or telemetry backend. An external Aspire dashboard is optional; AgentRouter has no AppHost and does not start a dashboard for you.
+
+## Privacy And Interpretation
+
+Sensitive AI tracing is off by default. `Telemetry__EnableSensitiveData=true` opts into sensitive AI instrumentation; enable it only with suitable collector redaction, access controls, and retention. Never share keys or raw provider errors as diagnostics.
+
+Gateway spans describe model requests and messages passing through the gateway. They do not prove which local commands ran, files changed, or subagents executed. Optional [agent exporter configuration](agents.md#optional-agent-telemetry) has separate version and delivery limits. Full agent-event ingestion, prompt/response capture, and provider account quota connectors are not implemented.

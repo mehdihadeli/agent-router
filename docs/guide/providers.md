@@ -1,0 +1,65 @@
+# Providers
+
+A provider combines a name, upstream protocol, endpoint, credentials, and a list of native model IDs. AgentRouter does not discover models or infer a protocol from a provider's brand.
+
+## OpenAI-Compatible Services
+
+```powershell
+ar provider add work --base-url https://api.openai.com/v1 --models gpt-4.1,gpt-4.1-mini
+ar provider list
+ar route set work/gpt-4.1
+```
+
+The default protocol is `OpenAi`, and the default credential variable is `OPENAI_API_KEY`. Replace the URL and models for your compatible service. A typical Chat Completions base URL ends in `/v1`, but use the provider's documented base URL rather than appending an operation path.
+
+Keep model IDs intact, including slashes. If the provider ID is `work` and its model is `owner/native-model`, the gateway selector is `work/owner/native-model`; the upstream receives only `owner/native-model`.
+
+## Native Anthropic
+
+```powershell
+ar provider add reasoning --protocol Anthropic --base-url https://api.anthropic.com --models YOUR_MODEL_ID --api-key-env ANTHROPIC_API_KEY
+ar route set reasoning/YOUR_MODEL_ID
+```
+
+Set the named variable privately, or use the interactive prompt. This provider can serve either supported client ingress; it is not restricted to Claude Code.
+
+## Custom Endpoints
+
+OpenRouter, DeepSeek, Z.AI and other services can be configured when they provide a supported upstream protocol. Check [protocol compatibility](../integrations.md) before setup. Successful registration does not prove that every model supports tools, streaming, or reasoning.
+
+For the official `api.deepseek.com` endpoint, required, named, or disabled tool selection disables default thinking when needed for compatibility. Automatic tool choice and unrelated hosts are unchanged. An explicitly incompatible thinking setting is rejected.
+
+Azure OpenAI and GitHub Models have adapter paths. Their resource/deployment configuration is described under [legacy host options](../reference/configuration.md#legacy-host-options); a custom OpenAI-compatible URL alone does not make an Azure deployment work.
+
+## Check A Connection
+
+```powershell
+ar provider check work/gpt-4.1
+ar provider check work/gpt-4.1 --probe basic --probe streaming --probe tools --probe usage
+```
+
+This sends real upstream requests and may incur charges. Run it only when you intend to test the selected account and model. Without `--probe`, the command runs the basic completion check. Repeat `--probe` to run selected capability checks:
+
+| Probe | Verifies |
+| --- | --- |
+| `basic` | A normal non-streaming completion succeeds. |
+| `streaming` | The provider returns at least one streaming update. |
+| `tools` | The provider returns the declared `agentrouter_probe` tool call without the CLI executing it. |
+| `structured` | The provider returns parseable JSON matching the probe shape. This is a content check, not a provider-native schema guarantee. |
+| `reasoning` | The response contains text or reasoning content. Sensitive content is not printed. |
+| `usage` | The provider reports input or output token usage. |
+
+The command prints one result per probe and exits with code `1` if any selected probe fails. A successful probe applies only to the selected model and request shape; it does not certify every model, tool schema, protocol feature, or routing path.
+
+## Change Or Remove A Provider
+
+Use `ar config show` to inspect saved configuration without saved key values. Reassign routes and profiles before removing a referenced provider:
+
+```powershell
+ar provider remove unused
+ar service reload
+```
+
+Restart foreground `serve` instead of running `service reload` when no managed service is running. Saved changes do not automatically update active inference.
+
+Credentials are encrypted at rest. Keep the database and master key protected together. Multiple-key rotation, OAuth import, balance lookup, and automatic model refresh are not implemented.

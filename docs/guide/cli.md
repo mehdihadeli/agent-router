@@ -1,0 +1,88 @@
+# CLI Guide
+
+AgentRouter's `ar` command is the primary automation and operations interface. It configures
+providers and routes, manages the local service, launches isolated agent profiles, and reports
+sanitized request activity.
+
+Use `./ar.ps1` on Windows, `bash ./ar` on macOS/Linux, or `ar` after installing the packaged
+.NET tool. Run `ar --help` for the current command tree. A bare `ar` prints help and does not
+start a server.
+
+## First Setup
+
+```powershell
+ar init --port 4600
+ar provider add work --base-url https://api.openai.com/v1 --models gpt-4.1
+ar route set work/gpt-4.1
+ar profile add Review --model work/gpt-4.1
+```
+
+Provider keys are read from an environment variable or entered through a private prompt. Keys
+must not be passed as command-line arguments. Saved configuration lives under `~/.agent-router`;
+secrets are encrypted separately.
+
+## Run Modes
+
+| Command | Use it when |
+| --- | --- |
+| `ar serve` | You need a short foreground inference session. Ctrl+C stops it. |
+| `ar service start` | You want management and inference to continue after the terminal closes. |
+| `ar service serve` | You need foreground management for debugging or an external supervisor. |
+| `ar service pause` | You need to stop model handling while keeping management available. |
+| `ar service resume` | You want to start paused or stopped model handling. |
+| `ar service reload` | Saved providers, routes, or inference settings changed and must be applied. |
+| `ar service status` | You need separate management and inference readiness information. |
+| `ar service stop` | You are finished with the managed service. |
+
+Management availability does not prove inference readiness. Check for `Inference: Running` in
+`ar service status`.
+
+## Configuration Workflows
+
+- `provider add`, `list`, `remove`, and `check` manage upstream endpoints and encrypted keys.
+- `route set` selects the default route or a Claude tier route.
+- `route preview` evaluates a versioned settings candidate without contacting providers or saving.
+- `config show` displays saved state with credentials masked or omitted.
+- `config validate` checks versioned settings and nonpersistent overlays.
+- `config token` prints a sensitive inference token; `--managed` selects the separate management token.
+
+## Agent Profiles
+
+Profiles isolate child-process configuration from global agent settings:
+
+```powershell
+ar profile add Review --kind claude --model work/gpt-4.1
+ar profile edit Review --tier-sonnet work/gpt-4.1
+ar profile list
+ar profile launch Review -- --permission-mode plan
+ar profile remove Review
+```
+
+Supported profile kinds are Claude Code, Codex, OpenCode, and Claude Design metadata. Launching
+uses native executables and child-only environment/configuration. Shell wrappers are rejected.
+Claude Design remains app metadata and is not launched by the CLI.
+
+See [agent profiles](../reference/agent-profiles.md) for protocol limits and [CLI reference](../reference/cli.md)
+for every option.
+
+## Observability
+
+```powershell
+ar observability --hours 24
+```
+
+The report reads sanitized retained summaries and prints request count, success/error rate,
+average and p95 latency, reported input/output tokens, known cost, top provider/model, last
+activity, and the five newest activity records. Unknown usage and cost remain unknown. It does
+not print prompts, responses, API keys, or raw upstream errors.
+
+For OTLP traces, metrics, and logs, configure `OTEL_EXPORTER_OTLP_ENDPOINT` and
+`OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` in the process environment. See
+[observability](observability.md).
+
+## Operational Boundaries
+
+The CLI does not modify global Claude, Codex, or OpenCode settings. Inference and management use
+separate credentials. Provider checks can make real upstream requests and may incur charges.
+Restart or reload after saved provider or route changes; there is no implicit hot configuration
+reload.

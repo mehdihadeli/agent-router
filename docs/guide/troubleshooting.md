@@ -1,0 +1,43 @@
+# Troubleshooting
+
+Start with `ar --help`, `ar provider list`, and `ar config show`. Configuration output omits or masks saved secrets. Do not include token output, API keys, prompt bodies, or raw provider exceptions in a bug report.
+
+## Gateway Is Unavailable
+
+Use `ar status --url http://127.0.0.1:4600` for a foreground gateway, or `ar service status` for a managed service. Confirm the URL matches the configured port.
+
+`Management: Running` does not mean inference is running. If inference is stopped, use `ar service resume`. If it failed, correct the reported configuration or listener problem and resume/reload. Service controls do not manage a standalone `ar serve` process.
+
+## Authentication Fails
+
+Inference and management use separate tokens. Agent profiles supply the inference token automatically. Manual clients need that token, while `/management/v1/*` requires the management token in a Bearer header. Upstream keys are not gateway tokens. Never put credentials in URLs.
+
+Use `ar config token` or `ar config token --managed` only when you explicitly need the sensitive value. An upstream 401/403 usually requires checking provider credentials and model access; these errors are not retried automatically.
+
+## Model Or Protocol Errors
+
+Check `ar provider list`, the exact native model ID, and your route. Preserve model IDs containing slashes. `/v1/models` lists configured models, not the provider's live catalog.
+
+A 404 from an upstream can mean an incorrect base URL, unavailable model, or unsupported API operation. A 400 can mean unsupported tool choice or content. Read [protocol compatibility](../integrations.md), particularly before using Codex; a Responses endpoint does not imply complete Codex support.
+
+For a deliberate paid connectivity check, run `ar provider check PROVIDER/MODEL`. This does not certify every tool or streaming feature.
+
+## Timeouts And Interrupted Streams
+
+A deadline before output returns HTTP 504. Once SSE output has started, expiry interrupts the connection; the gateway does not append a successful completion or replay on another model.
+
+Check `RequestTimeoutSeconds` for ordinary hosting, or `Execution.DeadlineSeconds` for explicitly activated versioned settings. Retry delays and Retry-After consume the same deadline. Increasing attempts can increase charges without fixing an authentication or validation error.
+
+HTTP 503 can indicate upstream overload, an open provider/model circuit, or exhausted local concurrency. Protection state is shared across requests; circuit break duration is 15 seconds. See [retry limits](../reference/configuration.md#provider-attempt-budget).
+
+## Saved Changes Are Not Active
+
+Run `ar service reload` for managed inference, or restart foreground `serve`. Validation and preview are read-only. Merely setting `AR_SETTINGS_FILE` does not activate versioned routing; use `serve --settings-file`.
+
+Reload validates configuration before draining existing inference, but a later bind/start failure can leave inference unavailable. Management remains running so you can correct settings. This is not zero-downtime reload or automatic rollback.
+
+## Port, Storage, And Key Problems
+
+Fixed-port conflicts fail rather than silently choosing another inference port. Choose a free port, or investigate the process already listening. Do not delete service state or kill a PID without verifying ownership.
+
+The default data directory is `~/.agent-router`. If you changed `AR_CONFIG_DIR`, confirm all relevant processes use it. Stop gateway processes before a file-level backup and keep the SQLite database, companion files, and master key together. Replacing a master key cannot decrypt existing credentials. Do not initialize a replacement store when trying to recover existing settings.

@@ -1,0 +1,1218 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Agent Router Management",
+    "description": "Management requires a separate Bearer credential or a paired browser session. Browser mutations require same-origin and CSRF validation. Inference credentials are not accepted.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:2511/"
+    }
+  ],
+  "paths": {
+    "/management/v1/identity": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Read authenticated service identity and readiness.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/config": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Read management configuration without stored credentials.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagementConfigurationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/shutdown": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Gracefully stop this authenticated managed service.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/management/v1/browser/pairings": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Create a single-use browser pairing code; CLI Bearer authorization required.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserPairingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/browser/session": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Exchange a CLI pairing code for a short-lived HttpOnly browser session.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserPairingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/management/v1/requests": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Read retained sanitized inference summaries; requires management authorization.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GatewayRequestSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/observability": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Read sanitized request health and usage metrics for a bounded time window.",
+        "parameters": [
+          {
+            "name": "hours",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayObservabilitySummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/gateway": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Read inference state independently of management readiness.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/gateway/start": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Start inference using saved configuration; keep management available on failure.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/gateway/stop": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Drain and stop inference without stopping management.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/gateway/restart": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Validate saved configuration then restart inference.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayLifecycleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/ui/{path}": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/management/v1/providers": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "List provider settings without credentials.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManagementProviderResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/providers/{id}": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Create an API-key provider; restart inference to apply.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Update provider settings; restart inference to apply.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Remove an unreferenced provider and its encrypted credentials.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/management/v1/profiles": {
+      "get": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManagementProfileResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/management/v1/profiles/{name}": {
+      "post": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/management/v1/routes/{tier}": {
+      "put": {
+        "tags": [
+          "AgentRouter.Cli"
+        ],
+        "summary": "Assign default or Claude model-tier route; restart inference to apply.",
+        "parameters": [
+          {
+            "name": "tier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteRouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BrowserPairingRequest": {
+        "required": [
+          "Code"
+        ],
+        "type": "object",
+        "properties": {
+          "Code": {
+            "type": "string"
+          }
+        }
+      },
+      "BrowserPairingResponse": {
+        "required": [
+          "Code",
+          "ExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "Code": {
+            "type": "string"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BrowserSessionResponse": {
+        "required": [
+          "CsrfToken",
+          "ExpiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "CsrfToken": {
+            "type": "string"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GatewayLifecycleResponse": {
+        "required": [
+          "State",
+          "Url",
+          "Error"
+        ],
+        "type": "object",
+        "properties": {
+          "State": {
+            "type": "string"
+          },
+          "Url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GatewayObservabilitySummary": {
+        "required": [
+          "From",
+          "To",
+          "Requests",
+          "SuccessfulRequests",
+          "FailedRequests",
+          "SuccessRate",
+          "AverageLatencyMs",
+          "P95LatencyMs",
+          "InputTokens",
+          "OutputTokens",
+          "CostUsd",
+          "TopProvider",
+          "TopModel",
+          "LastRequestAt"
+        ],
+        "type": "object",
+        "properties": {
+          "From": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "To": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Requests": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "SuccessfulRequests": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "FailedRequests": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "SuccessRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "AverageLatencyMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "P95LatencyMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "InputTokens": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "OutputTokens": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "CostUsd": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "TopProvider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "TopModel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "LastRequestAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "GatewayRequestSummary": {
+        "required": [
+          "RequestId",
+          "Timestamp",
+          "RequestedModel",
+          "Provider",
+          "Model",
+          "LatencyMs",
+          "Outcome",
+          "DispatchAttempts",
+          "ProviderAttemptLimit",
+          "InputTokens",
+          "OutputTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "RequestId": {
+            "type": "string"
+          },
+          "Timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "RequestedModel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Provider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "LatencyMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "Outcome": {
+            "type": "string"
+          },
+          "DispatchAttempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "ProviderAttemptLimit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "InputTokens": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "OutputTokens": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "CostUsd": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "GatewayServiceIdentity": {
+        "required": [
+          "InstanceId",
+          "ProcessId",
+          "ProcessStartTicks",
+          "Version"
+        ],
+        "type": "object",
+        "properties": {
+          "InstanceId": {
+            "type": "string"
+          },
+          "ProcessId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "ProcessStartTicks": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "Version": {
+            "type": "string"
+          }
+        }
+      },
+      "ManagementConfigurationResponse": {
+        "required": [
+          "ProxyPort",
+          "ActiveProvider",
+          "HasClientToken",
+          "Providers",
+          "Profiles",
+          "Routes",
+          "RestartRequired"
+        ],
+        "type": "object",
+        "properties": {
+          "ProxyPort": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "ActiveProvider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "HasClientToken": {
+            "type": "boolean"
+          },
+          "Providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagementProviderResponse"
+            }
+          },
+          "Profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagementProfileResponse"
+            }
+          },
+          "Routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagementRouteResponse"
+            }
+          },
+          "RestartRequired": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ManagementProfileResponse": {
+        "required": [
+          "Name",
+          "Enabled",
+          "Model",
+          "Executable",
+          "Kind",
+          "EntryMode",
+          "Scope",
+          "TierModels",
+          "TelemetryEndpoint",
+          "Environment",
+          "WorkingDirectory"
+        ],
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Enabled": {
+            "type": "boolean"
+          },
+          "Model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Executable": {
+            "type": "string"
+          },
+          "Kind": {
+            "type": "string"
+          },
+          "EntryMode": {
+            "type": "string"
+          },
+          "Scope": {
+            "type": "string"
+          },
+          "TierModels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "TelemetryEndpoint": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uri"
+          },
+          "Environment": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "WorkingDirectory": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ManagementProviderResponse": {
+        "required": [
+          "Id",
+          "Enabled",
+          "Compatibility",
+          "BaseUrl",
+          "Models",
+          "HasApiKey"
+        ],
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Enabled": {
+            "type": "boolean"
+          },
+          "Compatibility": {
+            "$ref": "#/components/schemas/ProviderCompatibility"
+          },
+          "BaseUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "HasApiKey": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ManagementRouteResponse": {
+        "required": [
+          "Tier",
+          "Enabled",
+          "ProviderId",
+          "Model"
+        ],
+        "type": "object",
+        "properties": {
+          "Tier": {
+            "type": "string"
+          },
+          "Enabled": {
+            "type": "boolean"
+          },
+          "ProviderId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProviderCompatibility": {
+        "enum": [
+          "OpenAi",
+          "Anthropic"
+        ]
+      },
+      "WriteProfileRequest": {
+        "type": "object",
+        "properties": {
+          "Model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Executable": {
+            "type": "string",
+            "default": "claude"
+          },
+          "Enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "Kind": {
+            "type": "string",
+            "default": "claude"
+          },
+          "EntryMode": {
+            "type": "string",
+            "default": "cli"
+          },
+          "Scope": {
+            "type": "string",
+            "default": "launch"
+          },
+          "TierModels": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "TelemetryEndpoint": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uri"
+          },
+          "Environment": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "WorkingDirectory": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WriteProviderRequest": {
+        "required": [
+          "BaseUrl",
+          "Models"
+        ],
+        "type": "object",
+        "properties": {
+          "BaseUrl": {
+            "type": "string"
+          },
+          "Models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ApiKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Compatibility": {
+            "$ref": "#/components/schemas/ProviderCompatibility"
+          },
+          "Enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "WriteRouteRequest": {
+        "required": [
+          "Model"
+        ],
+        "type": "object",
+        "properties": {
+          "Model": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "AgentRouter.Cli"
+    }
+  ]
+}
